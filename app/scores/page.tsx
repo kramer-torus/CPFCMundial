@@ -1,267 +1,251 @@
 'use client';
-import { useEffect, useState } from 'react';
+export const dynamic = 'force-dynamic';
+
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Team, TeamPoints, Round, ROUNDS, TIER_COLORS } from '@/lib/types';
 import AdminPinModal from '@/components/AdminPinModal';
 
-type ResultMap = Record<string, string>; // team_id → result string
-
-const ROUND_LABELS: Record<Round, string> = {
-  GW1: 'Group Stage — Matchday 1',
-  GW2: 'Group Stage — Matchday 2',
-  GW3: 'Group Stage — Matchday 3',
-  R32: 'Round of 32',
-  R16: 'Round of 16',
-  QF: 'Quarter-Finals',
-  SF: 'Semi-Finals',
-  '3PO': '3rd Place Play-off',
-  FINAL: 'Final',
-};
+type ResultType = 'win' | 'draw' | 'loss' | 'eliminated' | 'runner-up' | 'none';
 
 const GROUP_ROUNDS: Round[] = ['GW1', 'GW2', 'GW3'];
 const KNOCKOUT_ROUNDS: Round[] = ['R32', 'R16', 'QF', 'SF'];
+const SPECIAL_ROUNDS: Round[] = ['3PO', 'FINAL'];
 
-function getPointsForResult(result: string, round: Round): number {
+function getPointsForResult(result: ResultType, round: Round): number {
+  if (result === 'none') return 0;
   if (round === 'FINAL') {
-    if (result === 'winner') return 5;
+    if (result === 'win') return 5;
     if (result === 'runner-up') return 3;
     return 0;
   }
   if (round === '3PO') {
-    return result === 'win' ? 2 : 0;
+    if (result === 'win') return 2;
+    return 0;
   }
-  if (GROUP_ROUNDS.includes(round)) {
+  if (GROUP_ROUNDS.includes(round as Round)) {
     if (result === 'win') return 3;
     if (result === 'draw') return 1;
     return 0;
   }
   // Knockout
-  return result === 'win' ? 3 : 0;
+  if (result === 'win') return 3;
+  return 0; // eliminated
 }
 
-function ResultButtons({
-  round,
-  value,
-  onChange,
-}: {
-  round: Round;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  const isGroup = GROUP_ROUNDS.includes(round);
-  const isFinal = round === 'FINAL';
-  const is3PO = round === '3PO';
-
-  let options: { value: string; label: string; pts: string }[] = [];
-
-  if (isFinal) {
-    options = [
-      { value: 'winner', label: 'Winner', pts: '5pts' },
-      { value: 'runner-up', label: 'Runner-up', pts: '3pts' },
-      { value: 'none', label: '—', pts: '' },
-    ];
-  } else if (is3PO) {
-    options = [
-      { value: 'win', label: '3rd Place Win', pts: '2pts' },
-      { value: 'loss', label: 'Loss', pts: '0pts' },
-      { value: 'none', label: '—', pts: '' },
-    ];
-  } else if (isGroup) {
-    options = [
-      { value: 'win', label: 'Win', pts: '3pts' },
-      { value: 'draw', label: 'Draw', pts: '1pt' },
-      { value: 'loss', label: 'Loss', pts: '0pts' },
-    ];
-  } else {
-    options = [
-      { value: 'win', label: 'Win', pts: '3pts' },
-      { value: 'eliminated', label: 'Eliminated', pts: '0pts' },
-    ];
+function getResultFromPoints(points: number, round: Round): ResultType {
+  if (round === 'FINAL') {
+    if (points === 5) return 'win';
+    if (points === 3) return 'runner-up';
+    if (points === 0) return 'eliminated';
+    return 'none';
   }
-
-  return (
-    <div className="flex gap-1 flex-wrap">
-      {options.map(opt => (
-        <button
-          key={opt.value}
-          onClick={() => onChange(opt.value)}
-          className={`text-xs px-2 py-1.5 rounded-lg font-semibold transition-colors border ${
-            value === opt.value
-              ? 'bg-palace-red border-palace-red text-white'
-              : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/15'
-          }`}
-        >
-          {opt.label}
-          {opt.pts && <span className="ml-1 opacity-60">{opt.pts}</span>}
-        </button>
-      ))}
-    </div>
-  );
+  if (round === '3PO') {
+    if (points === 2) return 'win';
+    if (points === 0) return 'loss';
+    return 'none';
+  }
+  if (GROUP_ROUNDS.includes(round as Round)) {
+    if (points === 3) return 'win';
+    if (points === 1) return 'draw';
+    if (points === 0) return 'loss';
+    return 'none';
+  }
+  // Knockout
+  if (points === 3) return 'win';
+  if (points === 0) return 'eliminated';
+  return 'none';
 }
 
 export default function ScoresPage() {
   const [authed, setAuthed] = useState(false);
-  const [showPin, setShowPin] = useState(true);
+  const [showPin, setShowPin] = useState(false);
+  const [selectedRound, setSelectedRound] = useState<Round>('GW1');
   const [teams, setTeams] = useState<Team[]>([]);
   const [existingPoints, setExistingPoints] = useState<TeamPoints[]>([]);
-  const [round, setRound] = useState<Round>('GW1');
-  const [results, setResults] = useState<ResultMap>({});
+  const [results, setResults] = useState<Record<string, ResultType>>({});
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [loading, setLoading] = useState(false);
 
+  // Check session storage for auth
   useEffect(() => {
-    const stored = sessionStorage.getItem('cpfc-admin-authed');
-    if (stored === '1') { setAuthed(true); setShowPin(false); }
+    if (typeof window !== 'undefined') {
+      const isAuthed = sessionStorage.getItem('cpfc-admin-authed') === '1';
+      if (isAuthed) setAuthed(true);
+      else setShowPin(true);
+    }
   }, []);
 
-  useEffect(() => {
-    if (!authed) return;
-    async function load() {
-      setLoading(true);
-      const [{ data: t }, { data: tp }] = await Promise.all([
-        supabase.from('teams').select('*').order('tier').order('name'),
-        supabase.from('team_points').select('*').eq('round', round),
-      ]);
-      if (t) setTeams(t);
-      if (tp) {
-        setExistingPoints(tp);
-        // Initialise result state from saved points
-        const init: ResultMap = {};
-        for (const p of tp) {
-          const r = reversePoints(p.points, round);
-          if (r) init[p.team_id] = r;
-        }
-        setResults(init);
+  const fetchTeamsAndPoints = useCallback(async () => {
+    const [teamsRes, pointsRes] = await Promise.all([
+      supabase.from('teams').select('*').order('tier').order('name'),
+      supabase.from('team_points').select('*').eq('round', selectedRound),
+    ]);
+    const teamsData: Team[] = teamsRes.data || [];
+    const pointsData: TeamPoints[] = pointsRes.data || [];
+
+    setTeams(teamsData);
+    setExistingPoints(pointsData);
+
+    // Initialize results from existing points
+    const initResults: Record<string, ResultType> = {};
+    for (const team of teamsData) {
+      const existing = pointsData.find(p => p.team_id === team.id);
+      if (existing) {
+        initResults[team.id] = getResultFromPoints(existing.points, selectedRound);
       } else {
-        setResults({});
+        initResults[team.id] = 'none';
       }
-      setLoading(false);
     }
-    load();
-  }, [authed, round]);
+    setResults(initResults);
+    setLoading(false);
+  }, [selectedRound]);
 
-  function reversePoints(points: number, r: Round): string {
-    if (r === 'FINAL') {
-      if (points === 5) return 'winner';
-      if (points === 3) return 'runner-up';
-      return 'none';
-    }
-    if (r === '3PO') return points === 2 ? 'win' : points === 0 ? 'loss' : 'none';
-    if (GROUP_ROUNDS.includes(r)) {
-      if (points === 3) return 'win';
-      if (points === 1) return 'draw';
-      if (points === 0) return 'loss';
-    }
-    // Knockout
-    if (points === 3) return 'win';
-    if (points === 0) return 'eliminated';
-    return 'none';
-  }
+  useEffect(() => {
+    if (authed) fetchTeamsAndPoints();
+  }, [authed, fetchTeamsAndPoints]);
 
-  function setResult(teamId: string, value: string) {
-    setResults(prev => ({ ...prev, [teamId]: value }));
+  function setResult(teamId: string, result: ResultType) {
+    setResults(prev => ({ ...prev, [teamId]: result }));
     setSaved(false);
   }
 
   async function handleSave() {
     setSaving(true);
-    const rows = Object.entries(results)
-      .filter(([, v]) => v && v !== 'none')
-      .map(([team_id, result]) => ({
-        team_id,
-        round,
-        points: getPointsForResult(result, round),
+    const rows = teams
+      .filter(t => results[t.id] && results[t.id] !== 'none')
+      .map(t => ({
+        team_id: t.id,
+        round: selectedRound,
+        points: getPointsForResult(results[t.id], selectedRound),
         updated_at: new Date().toISOString(),
       }));
 
     if (rows.length > 0) {
-      await supabase.from('team_points').upsert(rows, { onConflict: 'team_id,round' });
+      const { error } = await supabase
+        .from('team_points')
+        .upsert(rows, { onConflict: 'team_id,round' });
+      if (error) console.error(error);
     }
-
-    // Remove any entries set to 'none' that may exist in DB
-    const noneIds = Object.entries(results)
-      .filter(([, v]) => v === 'none')
-      .map(([id]) => id);
-    if (noneIds.length > 0) {
-      await supabase.from('team_points').delete().eq('round', round).in('team_id', noneIds);
-    }
-
     setSaving(false);
     setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setTimeout(() => setSaved(false), 2000);
   }
 
   if (showPin && !authed) {
     return (
       <AdminPinModal
-        onSuccess={() => { sessionStorage.setItem('cpfc-admin-authed', '1'); setAuthed(true); setShowPin(false); }}
-        onCancel={() => {}}
+        onSuccess={() => {
+          sessionStorage.setItem('cpfc-admin-authed', '1');
+          setAuthed(true);
+          setShowPin(false);
+        }}
+        onCancel={() => setShowPin(false)}
       />
     );
   }
 
-  const tierGroups: Record<number, Team[]> = { 1: [], 2: [], 3: [], 4: [] };
-  for (const t of teams) tierGroups[t.tier].push(t);
+  if (!authed) {
+    return (
+      <div className="text-center py-16">
+        <p className="text-white/60 mb-4">Admin access required</p>
+        <button onClick={() => setShowPin(true)} className="btn-primary">
+          Enter PIN
+        </button>
+      </div>
+    );
+  }
+
+  const isGroupRound = GROUP_ROUNDS.includes(selectedRound as Round);
+  const isKnockout = KNOCKOUT_ROUNDS.includes(selectedRound as Round);
+  const is3PO = selectedRound === '3PO';
+  const isFinal = selectedRound === 'FINAL';
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-black text-gold">Score Entry 📊</h1>
-        <span className="text-xs bg-palace-red/30 text-palace-red px-2 py-1 rounded-full font-semibold">Admin</span>
+        <h1 className="text-2xl font-extrabold text-white">Score Entry 📊</h1>
+        <span className="text-xs text-gold/70 font-medium bg-gold/10 px-2 py-1 rounded-full">Admin</span>
       </div>
 
       {/* Round selector */}
       <div>
-        <label className="text-white/60 text-sm font-medium block mb-1.5">Round</label>
+        <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">Round</label>
         <select
-          value={round}
-          onChange={e => setRound(e.target.value as Round)}
-          className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-gold appearance-none"
+          value={selectedRound}
+          onChange={e => setSelectedRound(e.target.value as Round)}
+          className="w-full bg-white/10 border border-white/20 rounded-xl p-3 text-white focus:outline-none focus:border-gold appearance-none"
         >
           {ROUNDS.map(r => (
-            <option key={r} value={r} className="bg-navy">{r} — {ROUND_LABELS[r]}</option>
+            <option key={r} value={r} className="bg-navy">
+              {r === 'GW1' ? 'GW1 – Group Week 1' :
+               r === 'GW2' ? 'GW2 – Group Week 2' :
+               r === 'GW3' ? 'GW3 – Group Week 3' :
+               r === 'R32' ? 'R32 – Round of 32' :
+               r === 'R16' ? 'R16 – Round of 16' :
+               r === 'QF' ? 'QF – Quarter-Finals' :
+               r === 'SF' ? 'SF – Semi-Finals' :
+               r === '3PO' ? '3PO – 3rd Place Play-off' :
+               r === 'FINAL' ? 'FINAL – Final' : r}
+            </option>
           ))}
         </select>
       </div>
 
-      <p className="text-white/50 text-sm">{ROUND_LABELS[round]}</p>
+      {/* Scoring guide */}
+      <div className="card text-xs text-white/60 space-y-1 border border-gold/10">
+        {isGroupRound && <p>Win = 3pts &nbsp;·&nbsp; Draw = 1pt &nbsp;·&nbsp; Loss = 0pts</p>}
+        {isKnockout && <p>Win = 3pts &nbsp;·&nbsp; Eliminated = 0pts</p>}
+        {is3PO && <p>3rd Place Play-off &nbsp;·&nbsp; Win = 2pts &nbsp;·&nbsp; Loss = 0pts</p>}
+        {isFinal && <p>Champions = 5pts &nbsp;·&nbsp; Runners-up = 3pts</p>}
+      </div>
 
-      {/* Team list by tier */}
       {loading ? (
         <div className="space-y-2">
-          {[...Array(12)].map((_, i) => <div key={i} className="card h-16 animate-pulse bg-white/5" />)}
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="h-16 bg-white/5 rounded-xl animate-pulse" />
+          ))}
         </div>
       ) : (
-        <div className="space-y-4">
-          {([1, 2, 3, 4] as const).map(tier => {
-            const tierInfo = TIER_COLORS[tier];
-            const tierTeams = tierGroups[tier];
-            if (!tierTeams.length) return null;
+        <div className="space-y-2">
+          {teams.map(team => {
+            const tc = TIER_COLORS[team.tier];
+            const current = results[team.id] || 'none';
+
             return (
-              <div key={tier}>
-                <h3 className={`text-xs font-bold px-3 py-1.5 rounded-full inline-block mb-2 ${tierInfo.bg} ${tierInfo.text}`}>
-                  Tier {tier}
-                </h3>
-                <div className="space-y-2">
-                  {tierTeams.map(team => (
-                    <div key={team.id} className="card py-3">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="text-2xl">{team.flag_emoji}</span>
-                        <span className="font-semibold text-sm">{team.name}</span>
-                        {results[team.id] && results[team.id] !== 'none' && (
-                          <span className="ml-auto text-gold font-bold text-sm">
-                            {getPointsForResult(results[team.id], round)}pts
-                          </span>
-                        )}
-                      </div>
-                      <ResultButtons
-                        round={round}
-                        value={results[team.id] ?? ''}
-                        onChange={v => setResult(team.id, v)}
-                      />
-                    </div>
-                  ))}
+              <div key={team.id} className="card p-3 flex items-center gap-3">
+                <span className="text-2xl">{team.flag_emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-white text-sm leading-tight">{team.name}</div>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${tc.bg} ${tc.text}`}>T{team.tier}</span>
+                </div>
+                <div className="flex gap-1 flex-shrink-0">
+                  {isGroupRound && (
+                    <>
+                      <ResultBtn label="W" sublabel="+3" active={current === 'win'} onClick={() => setResult(team.id, current === 'win' ? 'none' : 'win')} color="emerald" />
+                      <ResultBtn label="D" sublabel="+1" active={current === 'draw'} onClick={() => setResult(team.id, current === 'draw' ? 'none' : 'draw')} color="amber" />
+                      <ResultBtn label="L" sublabel="0" active={current === 'loss'} onClick={() => setResult(team.id, current === 'loss' ? 'none' : 'loss')} color="rose" />
+                    </>
+                  )}
+                  {isKnockout && (
+                    <>
+                      <ResultBtn label="Win" sublabel="+3" active={current === 'win'} onClick={() => setResult(team.id, current === 'win' ? 'none' : 'win')} color="emerald" />
+                      <ResultBtn label="Out" sublabel="0" active={current === 'eliminated'} onClick={() => setResult(team.id, current === 'eliminated' ? 'none' : 'eliminated')} color="rose" />
+                    </>
+                  )}
+                  {is3PO && (
+                    <>
+                      <ResultBtn label="Win" sublabel="+2" active={current === 'win'} onClick={() => setResult(team.id, current === 'win' ? 'none' : 'win')} color="emerald" />
+                      <ResultBtn label="Loss" sublabel="0" active={current === 'loss'} onClick={() => setResult(team.id, current === 'loss' ? 'none' : 'loss')} color="rose" />
+                    </>
+                  )}
+                  {isFinal && (
+                    <>
+                      <ResultBtn label="🏆" sublabel="+5" active={current === 'win'} onClick={() => setResult(team.id, current === 'win' ? 'none' : 'win')} color="gold" />
+                      <ResultBtn label="🥈" sublabel="+3" active={current === 'runner-up'} onClick={() => setResult(team.id, current === 'runner-up' ? 'none' : 'runner-up')} color="amber" />
+                    </>
+                  )}
                 </div>
               </div>
             );
@@ -270,21 +254,50 @@ export default function ScoresPage() {
       )}
 
       {/* Save button */}
-      {!loading && teams.length > 0 && (
-        <div className="sticky bottom-24 pt-2">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className={`w-full py-4 rounded-2xl font-bold text-lg transition-all ${
-              saved
-                ? 'bg-emerald-600 text-white'
-                : 'btn-primary'
-            }`}
-          >
-            {saving ? 'Saving…' : saved ? '✓ Saved!' : 'Save Results'}
-          </button>
-        </div>
-      )}
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        className={`w-full font-bold py-4 rounded-xl transition-all ${
+          saved
+            ? 'bg-emerald-600 text-white'
+            : saving
+            ? 'bg-white/20 text-white/50 cursor-not-allowed'
+            : 'btn-primary'
+        }`}
+      >
+        {saved ? '✓ Saved!' : saving ? 'Saving...' : 'Save Changes'}
+      </button>
     </div>
+  );
+}
+
+function ResultBtn({
+  label,
+  sublabel,
+  active,
+  onClick,
+  color,
+}: {
+  label: string;
+  sublabel: string;
+  active: boolean;
+  onClick: () => void;
+  color: 'emerald' | 'amber' | 'rose' | 'gold';
+}) {
+  const colorMap = {
+    emerald: active ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-white/5 text-white/60 border-white/10 hover:border-emerald-500/50',
+    amber: active ? 'bg-amber-500 text-white border-amber-400' : 'bg-white/5 text-white/60 border-white/10 hover:border-amber-400/50',
+    rose: active ? 'bg-rose-700 text-white border-rose-600' : 'bg-white/5 text-white/60 border-white/10 hover:border-rose-600/50',
+    gold: active ? 'bg-yellow-500 text-navy border-yellow-400' : 'bg-white/5 text-white/60 border-white/10 hover:border-yellow-400/50',
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      className={`flex flex-col items-center px-2 py-1.5 rounded-lg border transition-all active:scale-95 min-w-[40px] ${colorMap[color]}`}
+    >
+      <span className="text-xs font-bold leading-none">{label}</span>
+      <span className="text-xs opacity-70 leading-none mt-0.5">{sublabel}</span>
+    </button>
   );
 }
