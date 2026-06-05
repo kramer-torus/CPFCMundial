@@ -1,11 +1,12 @@
--- Enable UUID extension
 create extension if not exists "uuid-ossp";
 
--- Players
-create table if not exists players (
+-- Users (replaces players)
+create table if not exists users (
   id uuid primary key default gen_random_uuid(),
-  name text not null,
-  color_hex text not null default '#C4122E',
+  display_name text not null unique,
+  pin_hash text not null,
+  is_admin boolean not null default false,
+  accent_colour text not null default '#C4122E',
   created_at timestamptz default now()
 );
 
@@ -18,12 +19,13 @@ create table if not exists teams (
   confederation text not null
 );
 
--- Draft Picks
+-- Draft Picks (user_id → users.id)
 create table if not exists draft_picks (
   id uuid primary key default gen_random_uuid(),
-  player_id uuid references players(id) on delete cascade,
+  user_id uuid references users(id) on delete cascade,
   team_id uuid references teams(id) on delete cascade unique,
   pick_number integer not null,
+  tier integer not null,
   picked_at timestamptz default now()
 );
 
@@ -37,24 +39,30 @@ create table if not exists team_points (
   unique(team_id, round)
 );
 
--- Enable Realtime on all tables
-alter publication supabase_realtime add table players;
+-- Audit Log
+create table if not exists audit_log (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete set null,
+  action text not null,
+  detail text,
+  created_at timestamptz default now()
+);
+
+-- Realtime
+alter publication supabase_realtime add table users;
 alter publication supabase_realtime add table teams;
 alter publication supabase_realtime add table draft_picks;
 alter publication supabase_realtime add table team_points;
 
--- Row Level Security (enable for production)
-alter table players enable row level security;
+-- RLS
+alter table users enable row level security;
 alter table teams enable row level security;
 alter table draft_picks enable row level security;
 alter table team_points enable row level security;
+alter table audit_log enable row level security;
 
--- Open RLS policies (tighten after launch)
-create policy "public read players" on players for select using (true);
-create policy "public write players" on players for all using (true);
-create policy "public read teams" on teams for select using (true);
-create policy "public write teams" on teams for all using (true);
-create policy "public read draft_picks" on draft_picks for select using (true);
-create policy "public write draft_picks" on draft_picks for all using (true);
-create policy "public read team_points" on team_points for select using (true);
-create policy "public write team_points" on team_points for all using (true);
+create policy "allow all users" on users for all using (true) with check (true);
+create policy "allow all teams" on teams for all using (true) with check (true);
+create policy "allow all draft_picks" on draft_picks for all using (true) with check (true);
+create policy "allow all team_points" on team_points for all using (true) with check (true);
+create policy "allow all audit_log" on audit_log for all using (true) with check (true);

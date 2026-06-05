@@ -1,14 +1,14 @@
--- Seed Players
-insert into players (name, color_hex) values
-  ('Jake',  '#C4122E'),
-  ('Tom',   '#1F3864'),
-  ('Sarah', '#C9A84C'),
-  ('Mike',  '#16A34A'),
-  ('Chris', '#7C3AED'),
-  ('Emma',  '#EA580C')
-on conflict do nothing;
+-- Seed Users
+-- Default PINs: Kev=1234, Franks=2222, Kangars=3333, Jakob=2026 (admin)
+-- To change a PIN: UPDATE users SET pin_hash = encode(sha256('YOURPIN'::bytea), 'hex') WHERE display_name = 'Name';
+insert into users (display_name, pin_hash, is_admin, accent_colour) values
+  ('Kev',     '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4', false, '#C4122E'),
+  ('Franks',  'edee29f882543b956620b26d0ee0e7e950399b1c4222f5de05e06425b4c995e9', false, '#3B82F6'),
+  ('Kangars', '318aee3fed8c9d040d35a7fc1fa776fb31303833aa2de885354ddf3d44d8fb69', false, '#C9A84C'),
+  ('Jakob',   '158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab', true,  '#10B981')
+on conflict (display_name) do nothing;
 
--- Seed all 48 teams
+-- Seed Teams (all 48)
 insert into teams (name, tier, flag_emoji, confederation) values
   ('Brazil', 1, '🇧🇷', 'CONMEBOL'),
   ('France', 1, '🇫🇷', 'UEFA'),
