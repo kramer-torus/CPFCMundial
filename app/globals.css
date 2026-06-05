@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-navy text-white min-h-screen;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-palace-red hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl transition-colors active:scale-95;
+  }
+  .btn-secondary {
+    @apply bg-navy border border-gold text-gold font-bold py-3 px-6 rounded-xl transition-colors hover:bg-gold hover:text-navy active:scale-95;
+  }
+  .card {
+    @apply bg-white/10 rounded-2xl p-4 backdrop-blur-sm border border-white/10;
+  }
+}
