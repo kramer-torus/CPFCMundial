@@ -8,6 +8,19 @@ export const metadata: Metadata = {
   description: 'Glad All Over the World — CPFC 2026 World Cup Draft Game',
   manifest: '/manifest.json',
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'CPFCMundial' },
+  openGraph: {
+    title: 'CPFCMundial',
+    description: 'Glad All Over the World — our CPFC 2026 World Cup draft game. Pick your nations, track your points, glory awaits.',
+    url: 'https://cpfc-mundial.vercel.app',
+    siteName: 'CPFCMundial',
+    locale: 'en_GB',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'CPFCMundial',
+    description: 'Glad All Over the World — CPFC 2026 World Cup Draft Game',
+  },
 };
 
 export const viewport: Viewport = {
@@ -29,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
         <BottomNav />
+        <div className="text-center text-white/15 text-[10px] pb-1">v3.0</div>
       </body>
     </html>
   );

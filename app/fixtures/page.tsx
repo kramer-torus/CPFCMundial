@@ -58,10 +58,28 @@ export default function FixturesPage() {
           <Calendar size={40} className="mx-auto text-white/20" />
           <h3 className="font-bold text-white">Live fixtures coming soon</h3>
           <p className="text-white/50 text-sm leading-relaxed">
-            Live World Cup fixtures unlock closer to the tournament. The 2026 group draw happens late 2025 — fixtures will appear here once available.
+            Live World Cup fixtures appear here once the feed is available.<br />
+            <span className="text-gold">Tournament kicks off 11 June 2026.</span>
           </p>
-          <p className="text-white/30 text-xs mt-4">
-            Using football-data.org. Free tier does not include the World Cup — upgrade or switch to API-Football for live WC data.
+          {/* Static schedule */}
+          <div className="mt-4 text-left space-y-1.5 text-sm border-t border-white/10 pt-4">
+            {[
+              ['Group Stage', 'Jun 11 – Jun 27'],
+              ['Round of 32', 'Jun 28 – Jul 3'],
+              ['Round of 16', 'Jul 4 – Jul 7'],
+              ['Quarter-finals', 'Jul 9 – Jul 11'],
+              ['Semi-finals', 'Jul 14 – Jul 15'],
+              ['3rd Place', 'Jul 18'],
+              ['Final 🏆', 'Jul 19 · MetLife Stadium, NJ'],
+            ].map(([s, d]) => (
+              <div key={s} className="flex justify-between">
+                <span className="text-white/60">{s}</span>
+                <span className="text-white/30 text-xs">{d}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-white/20 text-xs mt-3">
+            football-data.org free tier excludes the World Cup. Swap to API-Football in lib/fixtures.ts for live WC data.
           </p>
         </div>
       ) : error ? (
