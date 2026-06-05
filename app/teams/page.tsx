@@ -135,6 +135,14 @@ export default function TeamsPage() {
                     <span className={`text-xs px-1.5 py-0.5 rounded-full ${tc.bg} ${tc.text}`}>T{team.tier}</span>
                     <span className="text-xs text-white/40">{team.confederation}</span>
                   </div>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-xs text-white/40">#{team.fifa_ranking}</span>
+                    <span className="text-xs text-white/30">·</span>
+                    <span className="text-xs text-white/40">Grp {team.fifa_group}</span>
+                    {team.is_debut && (
+                      <span className="text-[10px] font-bold bg-gold/20 text-gold px-1 py-0.5 rounded">DEBUT</span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex-shrink-0 text-right">
                   {team.drafter ? (

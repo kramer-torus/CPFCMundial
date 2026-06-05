@@ -13,6 +13,9 @@ export interface Team {
   tier: 1 | 2 | 3 | 4;
   flag_emoji: string;
   confederation: string;
+  fifa_group: string;       // "A" through "L"
+  fifa_ranking: number;
+  is_debut: boolean;        // Curacao, Uzbekistan, Jordan, Cape Verde
 }
 
 export interface DraftPick {

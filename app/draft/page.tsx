@@ -229,6 +229,8 @@ function DraftRoom() {
                       >
                         <span className="text-3xl">{team.flag_emoji}</span>
                         <span className="text-white text-xs font-semibold leading-tight">{team.name}</span>
+                        <span className="text-white/40 text-[10px]">#{team.fifa_ranking} · Grp {team.fifa_group}</span>
+                        {team.is_debut && <span className="text-[9px] font-bold text-gold bg-gold/15 px-1 rounded">DEBUT</span>}
                         {isDrafted && drafter && (
                           <span
                             className="text-xs font-semibold px-1.5 py-0.5 rounded-full"

@@ -1,25 +1,29 @@
 create extension if not exists "uuid-ossp";
 
--- Users (replaces players)
+-- Users
 create table if not exists users (
   id uuid primary key default gen_random_uuid(),
   display_name text not null unique,
   pin_hash text not null,
   is_admin boolean not null default false,
   accent_colour text not null default '#C4122E',
+  draft_position integer,
   created_at timestamptz default now()
 );
 
--- Teams
+-- Teams (with 2026 WC fields)
 create table if not exists teams (
   id uuid primary key default gen_random_uuid(),
   name text not null unique,
   tier integer not null check (tier between 1 and 4),
   flag_emoji text not null,
-  confederation text not null
+  confederation text not null,
+  fifa_group text,
+  fifa_ranking integer,
+  is_debut boolean not null default false
 );
 
--- Draft Picks (user_id → users.id)
+-- Draft Picks
 create table if not exists draft_picks (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references users(id) on delete cascade,
@@ -48,26 +52,7 @@ create table if not exists audit_log (
   created_at timestamptz default now()
 );
 
--- Realtime
-alter publication supabase_realtime add table users;
-alter publication supabase_realtime add table teams;
-alter publication supabase_realtime add table draft_picks;
-alter publication supabase_realtime add table team_points;
-
--- RLS
-alter table users enable row level security;
-alter table teams enable row level security;
-alter table draft_picks enable row level security;
-alter table team_points enable row level security;
-alter table audit_log enable row level security;
-
-create policy "allow all users" on users for all using (true) with check (true);
-create policy "allow all teams" on teams for all using (true) with check (true);
-create policy "allow all draft_picks" on draft_picks for all using (true) with check (true);
-create policy "allow all team_points" on team_points for all using (true) with check (true);
-create policy "allow all audit_log" on audit_log for all using (true) with check (true);
-
--- Quiz
+-- Quiz Results
 create table if not exists quiz_results (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references users(id) on delete cascade unique,
@@ -76,9 +61,24 @@ create table if not exists quiz_results (
   completed_at timestamptz default now()
 );
 
-alter table quiz_results enable row level security;
-create policy "allow all quiz_results" on quiz_results for all using (true) with check (true);
+-- Realtime
+alter publication supabase_realtime add table users;
+alter publication supabase_realtime add table teams;
+alter publication supabase_realtime add table draft_picks;
+alter publication supabase_realtime add table team_points;
 alter publication supabase_realtime add table quiz_results;
 
--- Draft position (set by admin after quiz)
-alter table users add column if not exists draft_position integer;
+-- RLS (open for friends game)
+alter table users enable row level security;
+alter table teams enable row level security;
+alter table draft_picks enable row level security;
+alter table team_points enable row level security;
+alter table audit_log enable row level security;
+alter table quiz_results enable row level security;
+
+create policy "allow all users" on users for all using (true) with check (true);
+create policy "allow all teams" on teams for all using (true) with check (true);
+create policy "allow all draft_picks" on draft_picks for all using (true) with check (true);
+create policy "allow all team_points" on team_points for all using (true) with check (true);
+create policy "allow all audit_log" on audit_log for all using (true) with check (true);
+create policy "allow all quiz_results" on quiz_results for all using (true) with check (true);
