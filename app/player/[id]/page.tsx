@@ -1,159 +1,87 @@
 'use client';
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { Player, Team, DraftPick, TeamPoints, TIER_COLORS } from '@/lib/types';
+import { GameUser, Team, DraftPick, TeamPoints, TIER_COLORS, KNOCKOUT_ROUNDS } from '@/lib/types';
 
-interface TeamWithPoints extends Team {
-  points: number;
-  pointsByRound: Record<string, number>;
-}
-
-export default function PlayerDetailPage() {
-  const params = useParams();
+export default function PlayerPage() {
+  const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const playerId = params.id as string;
-
-  const [player, setPlayer] = useState<Player | null>(null);
-  const [teams, setTeams] = useState<TeamWithPoints[]>([]);
-  const [totalPoints, setTotalPoints] = useState(0);
+  const [user, setUser] = useState<GameUser | null>(null);
+  const [teams, setTeams] = useState<(Team & { points: number; eliminated: boolean })[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchData = useCallback(async () => {
-    const [playerRes, picksRes, teamsRes, pointsRes] = await Promise.all([
-      supabase.from('players').select('*').eq('id', playerId).single(),
-      supabase.from('draft_picks').select('*').eq('player_id', playerId).order('pick_number'),
-      supabase.from('teams').select('*'),
-      supabase.from('team_points').select('*'),
-    ]);
-
-    const playerData: Player | null = playerRes.data;
-    const picks: DraftPick[] = picksRes.data || [];
-    const allTeams: Team[] = teamsRes.data || [];
-    const allPoints: TeamPoints[] = pointsRes.data || [];
-
-    setPlayer(playerData);
-
-    const playerTeamIds = picks.map(p => p.team_id);
-    const playerTeams: TeamWithPoints[] = playerTeamIds
-      .map(tid => {
-        const team = allTeams.find(t => t.id === tid);
-        if (!team) return null;
-        const teamPts = allPoints.filter(tp => tp.team_id === tid);
-        const points = teamPts.reduce((sum, tp) => sum + tp.points, 0);
-        const pointsByRound: Record<string, number> = {};
-        teamPts.forEach(tp => { pointsByRound[tp.round] = tp.points; });
-        return { ...team, points, pointsByRound };
-      })
-      .filter(Boolean) as TeamWithPoints[];
-
-    playerTeams.sort((a, b) => a.tier - b.tier || a.name.localeCompare(b.name));
-    setTeams(playerTeams);
-    setTotalPoints(playerTeams.reduce((sum, t) => sum + t.points, 0));
-    setLoading(false);
-  }, [playerId]);
-
   useEffect(() => {
+    async function fetchData() {
+      const [userRes, picksRes, pointsRes] = await Promise.all([
+        supabase.from('users').select('*').eq('id', id).single(),
+        supabase.from('draft_picks').select('*, teams(*)').eq('user_id', id).order('pick_number'),
+        supabase.from('team_points').select('*'),
+      ]);
+      const u = userRes.data as GameUser;
+      const picks: (DraftPick & { teams: Team })[] = picksRes.data || [];
+      const allPoints: TeamPoints[] = pointsRes.data || [];
+      setUser(u);
+      const enriched = picks.map(p => {
+        const teamId = p.team_id;
+        const pts = allPoints.filter(tp => tp.team_id === teamId).reduce((s, tp) => s + tp.points, 0);
+        const elim = allPoints.some(tp => tp.team_id === teamId && KNOCKOUT_ROUNDS.includes(tp.round) && tp.points === 0);
+        return { ...p.teams, points: pts, eliminated: elim };
+      });
+      setTeams(enriched);
+      setLoading(false);
+    }
     fetchData();
-    const channel = supabase
-      .channel(`player-${playerId}-realtime`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'team_points' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'draft_picks' }, fetchData)
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [fetchData, playerId]);
+  }, [id]);
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <div className="h-8 w-24 bg-white/10 rounded-xl animate-pulse" />
-        <div className="h-24 bg-white/10 rounded-2xl animate-pulse" />
-        <div className="grid grid-cols-2 gap-3">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="h-36 bg-white/5 rounded-2xl animate-pulse" />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-60">
+      <div className="w-8 h-8 border-2 border-palace-red border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+  if (!user) return <div className="card text-center py-8 text-white/50">Player not found.</div>;
 
-  if (!player) {
-    return (
-      <div className="text-center py-16">
-        <p className="text-white/60">Player not found</p>
-        <button onClick={() => router.push('/')} className="btn-primary mt-4">
-          Back to Home
-        </button>
-      </div>
-    );
-  }
+  const totalPts = teams.reduce((s, t) => s + t.points, 0);
+  const alive = teams.filter(t => !t.eliminated).length;
 
   return (
-    <div className="space-y-4 pb-4">
-      {/* Back button */}
-      <button
-        onClick={() => router.back()}
-        className="text-white/60 hover:text-white transition-colors text-sm flex items-center gap-1"
-      >
-        <span>←</span> Back
+    <div className="page-fade space-y-4 pb-4">
+      <button onClick={() => router.back()} className="flex items-center gap-1.5 text-white/40 hover:text-white text-sm transition-colors">
+        <ArrowLeft size={16} /> Back
       </button>
-
-      {/* Player header */}
-      <div
-        className="card border-2"
-        style={{ borderColor: player.color_hex }}
-      >
-        <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="card overflow-hidden" style={{ borderLeftColor: user.accent_colour, borderLeftWidth: 4 }}>
+        <div className="font-extrabold text-2xl text-white">{user.display_name}</div>
+        <div className="flex items-center gap-4 mt-2">
           <div>
-            <h1 className="text-2xl font-extrabold text-white">{player.name}</h1>
-            <p className="text-white/50 text-sm mt-0.5">{teams.length} teams drafted</p>
+            <span className="text-3xl font-extrabold text-gold">{totalPts}</span>
+            <span className="text-white/40 text-sm ml-1">pts</span>
           </div>
-          <div className="text-right">
-            <div
-              className="text-4xl font-extrabold"
-              style={{ color: player.color_hex }}
-            >
-              {totalPoints}
-            </div>
-            <div className="text-xs text-white/50">total pts</div>
-          </div>
+          <div className="text-white/50 text-sm">{alive}/12 teams alive</div>
         </div>
       </div>
-
       {/* Teams grid */}
       {teams.length === 0 ? (
         <div className="card text-center py-8">
-          <p className="text-white/60 text-sm">No teams drafted yet</p>
+          <p className="text-white/50 text-sm">No teams drafted yet.</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
           {teams.map(team => {
             const tc = TIER_COLORS[team.tier];
-            const knockoutRounds = ['R32', 'R16', 'QF', 'SF', '3PO', 'FINAL'];
-            const isEliminated = knockoutRounds.some(
-              r => team.pointsByRound[r] === 0
-            );
             return (
               <div
                 key={team.id}
-                className={`card flex flex-col items-center text-center p-4 ${isEliminated ? 'opacity-50' : ''}`}
+                className={`card flex flex-col items-center gap-2 py-4 transition-opacity ${team.eliminated ? 'opacity-40' : ''}`}
               >
-                <div className="text-4xl mb-2">{team.flag_emoji}</div>
-                <div className="font-bold text-white text-sm leading-tight mb-1">
-                  {team.name}
-                </div>
-                <div className={`text-xs px-2 py-0.5 rounded-full font-medium ${tc.bg} ${tc.text} mb-2`}>
-                  T{team.tier}
-                </div>
-                {isEliminated && (
-                  <div className="text-xs text-white/40 mb-1">Eliminated</div>
-                )}
-                <div className="mt-auto">
-                  <span className="text-xl font-extrabold text-gold">{team.points}</span>
-                  <span className="text-xs text-white/50 ml-1">pts</span>
-                </div>
+                <span className="text-4xl">{team.flag_emoji}</span>
+                <span className="font-bold text-white text-sm text-center leading-tight">{team.name}</span>
+                <span className={`pill ${tc.bg} ${tc.text} text-[10px]`}>T{team.tier} {tc.label}</span>
+                <span className={`font-bold text-lg ${team.points > 0 ? 'text-gold' : 'text-white/30'}`}>{team.points} pts</span>
+                {team.eliminated && <span className="text-rose-400 text-xs font-semibold">Eliminated</span>}
               </div>
             );
           })}

@@ -4,10 +4,10 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Team, Player, DraftPick, TIER_COLORS } from '@/lib/types';
+import { Team, GameUser, DraftPick, TIER_COLORS } from '@/lib/types';
 
 interface TeamWithDrafter extends Team {
-  drafter: Player | null;
+  drafter: GameUser | null;
 }
 
 type TierFilter = 'all' | 1 | 2 | 3 | 4;
@@ -23,16 +23,16 @@ export default function TeamsPage() {
     const [teamsRes, picksRes, playersRes] = await Promise.all([
       supabase.from('teams').select('*').order('tier').order('name'),
       supabase.from('draft_picks').select('*'),
-      supabase.from('players').select('*'),
+      supabase.from('users').select('*'),
     ]);
 
     const allTeams: Team[] = teamsRes.data || [];
     const picks: DraftPick[] = picksRes.data || [];
-    const players: Player[] = playersRes.data || [];
+    const users: GameUser[] = playersRes.data || [];
 
     const teamsWithDrafter: TeamWithDrafter[] = allTeams.map(team => {
       const pick = picks.find(p => p.team_id === team.id);
-      const drafter = pick ? (players.find(p => p.id === pick.player_id) || null) : null;
+      const drafter = pick ? (users.find(u => u.id === pick.user_id) || null) : null;
       return { ...team, drafter };
     });
 
@@ -102,7 +102,7 @@ export default function TeamsPage() {
                 : 'bg-white/10 text-white/60 hover:bg-white/20'
             }`}
           >
-            {t === 'all' ? 'All' : `T${t} – ${TIER_COLORS[t as number].label.split(' · ')[1]}`}
+            {t === 'all' ? 'All' : `T${t} – ${TIER_COLORS[t as number].label}`}
           </button>
         ))}
       </div>
@@ -141,11 +141,11 @@ export default function TeamsPage() {
                     <div
                       className="text-xs font-semibold px-2 py-1 rounded-lg"
                       style={{
-                        color: team.drafter.color_hex,
-                        backgroundColor: `${team.drafter.color_hex}20`,
+                        color: team.drafter.accent_colour,
+                        backgroundColor: `${team.drafter.accent_colour}20`,
                       }}
                     >
-                      {team.drafter.name}
+                      {team.drafter.display_name}
                     </div>
                   ) : (
                     <div className="text-xs font-semibold text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-lg">

@@ -1,22 +1,23 @@
-export function getDraftSnakeOrder(playerIds: string[]): string[] {
-  const order: string[] = [];
-  for (let round = 0; round < 8; round++) {
-    const ascending = round % 2 === 0;
-    for (let pos = 0; pos < 6; pos++) {
-      const idx = ascending ? pos : 5 - pos;
-      order.push(playerIds[idx]);
-    }
-  }
-  return order;
+// 4 players, 12 rounds of 4 picks = 48 total
+export function getPlayerIndexForPick(pickNumber: number): number {
+  const pickIndex = pickNumber - 1;
+  const roundIndex = Math.floor(pickIndex / 4);
+  const posInRound = pickIndex % 4;
+  const ascending = roundIndex % 2 === 0;
+  return ascending ? posInRound : 3 - posInRound;
 }
 
 export function getTierForPickNumber(pickNumber: number): 1 | 2 | 3 | 4 {
-  const roundIndex = Math.floor((pickNumber - 1) / 6);
-  return (Math.floor(roundIndex / 2) + 1) as 1 | 2 | 3 | 4;
+  return (Math.floor((pickNumber - 1) / 12) + 1) as 1 | 2 | 3 | 4;
+}
+
+export function getSnakeDirection(pickNumber: number): 'forward' | 'reverse' {
+  const roundIndex = Math.floor((pickNumber - 1) / 4);
+  return roundIndex % 2 === 0 ? 'forward' : 'reverse';
 }
 
 export function getPointsForResult(
-  result: 'win' | 'draw' | 'loss' | 'eliminated' | 'runner-up' | '3rd',
+  result: 'win' | 'draw' | 'loss' | 'runner-up',
   round: string
 ): number {
   if (round === 'FINAL') {
@@ -24,17 +25,11 @@ export function getPointsForResult(
     if (result === 'runner-up') return 3;
     return 0;
   }
-  if (round === '3PO') {
-    if (result === 'win') return 2;
-    return 0;
-  }
-  // Group stage
+  if (round === '3PO') return result === 'win' ? 2 : 0;
   if (['GW1', 'GW2', 'GW3'].includes(round)) {
     if (result === 'win') return 3;
     if (result === 'draw') return 1;
     return 0;
   }
-  // Knockout
-  if (result === 'win') return 3;
-  return 0;
+  return result === 'win' ? 3 : 0;
 }
