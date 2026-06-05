@@ -59,3 +59,7 @@ insert into teams (name, tier, flag_emoji, confederation) values
   ('Iraq', 4, '🇮🇶', 'AFC'),
   ('Paraguay', 4, '🇵🇾', 'CONMEBOL')
 on conflict (name) do nothing;
+
+-- Quiz results and draft positions are set at runtime (not seeded)
+-- Run The Gauntlet quiz from /quiz to determine draft order
+-- Admin (Jakob) locks positions from /quiz after all 4 players complete

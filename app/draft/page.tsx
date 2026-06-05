@@ -34,9 +34,16 @@ function DraftRoom() {
       supabase.from('teams').select('*').order('tier').order('name'),
       supabase.from('draft_picks').select('*').order('pick_number'),
     ]);
-    // Sort users to match PLAYER_ORDER
+    // Sort by draft_position if set (from quiz), otherwise fall back to hardcoded order
     const rawUsers: GameUser[] = usersRes.data || [];
-    const sortedUsers = PLAYER_ORDER.map(name => rawUsers.find(u => u.display_name === name)).filter(Boolean) as GameUser[];
+    const sortedUsers = (() => {
+      const allHavePosition = rawUsers.length > 0 && rawUsers.every(u => u.draft_position !== null);
+      if (allHavePosition) {
+        return [...rawUsers].sort((a, b) => (a.draft_position ?? 99) - (b.draft_position ?? 99));
+      }
+      // Fall back to hardcoded order
+      return PLAYER_ORDER.map(name => rawUsers.find(u => u.display_name === name)).filter(Boolean) as GameUser[];
+    })();
     setUsers(sortedUsers);
     setTeams(teamsRes.data || []);
     setPicks(picksRes.data || []);

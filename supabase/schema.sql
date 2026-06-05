@@ -66,3 +66,19 @@ create policy "allow all teams" on teams for all using (true) with check (true);
 create policy "allow all draft_picks" on draft_picks for all using (true) with check (true);
 create policy "allow all team_points" on team_points for all using (true) with check (true);
 create policy "allow all audit_log" on audit_log for all using (true) with check (true);
+
+-- Quiz
+create table if not exists quiz_results (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete cascade unique,
+  score integer not null default 0,
+  correct_count integer not null default 0,
+  completed_at timestamptz default now()
+);
+
+alter table quiz_results enable row level security;
+create policy "allow all quiz_results" on quiz_results for all using (true) with check (true);
+alter publication supabase_realtime add table quiz_results;
+
+-- Draft position (set by admin after quiz)
+alter table users add column if not exists draft_position integer;

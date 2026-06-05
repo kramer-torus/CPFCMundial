@@ -4,6 +4,7 @@ export interface GameUser {
   pin_hash: string;
   is_admin: boolean;
   accent_colour: string;
+  draft_position?: number | null;
 }
 
 export interface Team {
