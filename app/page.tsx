@@ -76,61 +76,77 @@ export default function HomePage() {
   return (
     <div className="page-fade">
       {/* Hero */}
-      <div className="-mx-4 px-6 py-8 mb-6" style={{ background: 'linear-gradient(135deg, #C4122E 0%, #8B0D20 60%, #1F3864 100%)' }}>
-        <div className="text-5xl mb-2">🦅</div>
-        <h1 className="text-3xl font-extrabold text-white leading-tight">
-          CPFC<span className="text-gold">Mundial</span>
-        </h1>
-        <p className="text-gold/90 italic text-sm mt-1">Glad All Over the World</p>
-        <p className="text-white/60 text-xs mt-1">2026 FIFA World Cup Draft Game</p>
+      <div className="-mx-4 px-6 py-8 mb-5" style={{ background: 'linear-gradient(160deg, #2a0a12 0%, #C4122E 35%, #8B0D20 65%, #1F3864 100%)' }}>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="font-display font-bold text-5xl text-white leading-none tracking-wide">
+              CPFC<span className="text-gold">MUNDIAL</span>
+            </h1>
+            <p className="text-gold/80 italic text-sm mt-1.5">Glad All Over the World</p>
+            <p className="text-white/50 text-xs mt-0.5 uppercase tracking-widest">2026 World Cup Draft</p>
+          </div>
+          <div className="text-5xl opacity-80">🦅</div>
+        </div>
       </div>
 
-      {/* Leaderboard */}
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="font-bold text-white text-lg">🏆 Leaderboard</h2>
+      {/* Leaderboard header */}
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="font-display font-bold text-xl text-white tracking-wider uppercase">Standings</h2>
         {updatedAt && (
-          <span className="text-white/30 text-xs">
-            Updated {updatedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          <span className="text-white/25 text-xs tabular-nums">
+            {updatedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </span>
         )}
       </div>
 
       {loading ? (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-20 bg-bg-card rounded-xl animate-pulse" />
+            <div key={i} className="h-[72px] bg-bg-card rounded-xl animate-pulse" />
           ))}
         </div>
       ) : !hasPicks ? (
-        <div className="card text-center py-12">
-          <div className="text-5xl mb-3">🦅</div>
-          <p className="text-white/60 text-sm">Draft hasn&apos;t started yet.</p>
-          <button onClick={() => router.push('/draft')} className="btn-primary mt-4 text-sm">
-            Head to the Draft Room →
+        <div className="card text-center py-12 space-y-4">
+          <div className="text-5xl">🦅</div>
+          <div>
+            <p className="font-display font-bold text-2xl text-white tracking-wide">DRAFT NOT STARTED</p>
+            <p className="text-white/40 text-sm mt-1">Complete The Gauntlet first to set draft order</p>
+          </div>
+          <button onClick={() => router.push('/draft')} className="btn-primary">
+            Go to Draft Room →
           </button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {board.map((player, idx) => (
             <div
               key={player.id}
               onClick={() => router.push(`/player/${player.id}`)}
-              className="card cursor-pointer hover:bg-white/5 active:scale-[0.98] transition-all overflow-hidden"
-              style={{ borderLeftColor: player.accent_colour, borderLeftWidth: 4 }}
+              className="relative overflow-hidden rounded-xl cursor-pointer active:scale-[0.98] transition-all"
+              style={{ background: `linear-gradient(90deg, ${player.accent_colour}18 0%, transparent 60%)`, borderWidth: 1, borderColor: `${player.accent_colour}30` }}
             >
-              <div className="flex items-center gap-3">
-                <div className="text-2xl w-8 text-center flex-shrink-0">
-                  {idx < 3 ? RANK_BADGES[idx] : <span className="text-white/30 font-bold text-lg">{idx + 1}</span>}
+              {/* Left accent bar */}
+              <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl" style={{ backgroundColor: player.accent_colour }} />
+
+              <div className="flex items-center gap-3 pl-4 pr-3 py-3">
+                {/* Rank */}
+                <div className="w-9 flex-shrink-0 text-center">
+                  {idx < 3
+                    ? <span className="text-2xl leading-none">{RANK_BADGES[idx]}</span>
+                    : <span className="font-display font-bold text-2xl text-white/25 leading-none">{idx + 1}</span>
+                  }
                 </div>
+                {/* Name + meta */}
                 <div className="flex-1 min-w-0">
-                  <div className="font-bold text-white text-lg leading-tight">{player.display_name}</div>
-                  <div className="text-white/40 text-xs mt-0.5">
-                    {player.teams_alive} teams alive · Best: {player.best_stage}
+                  <div className="font-bold text-white text-base leading-tight">{player.display_name}</div>
+                  <div className="text-white/35 text-xs mt-0.5 tabular-nums">
+                    {player.teams_alive} alive · {player.best_stage !== '—' ? player.best_stage : 'not started'}
                   </div>
                 </div>
+                {/* Score */}
                 <div className="text-right flex-shrink-0">
-                  <div className="text-2xl font-extrabold text-gold">{player.total_points}</div>
-                  <div className="text-white/40 text-xs">pts</div>
+                  <div className="font-display font-bold text-3xl text-gold leading-none tabular-nums">{player.total_points}</div>
+                  <div className="text-white/30 text-[10px] uppercase tracking-wider mt-0.5">pts</div>
                 </div>
               </div>
             </div>
