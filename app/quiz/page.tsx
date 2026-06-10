@@ -254,9 +254,9 @@ export default function QuizPage() {
       <div className="page-fade space-y-5 pb-4 pt-2">
         <div className="card text-center py-8 space-y-3">
           <div className="text-6xl">🦅</div>
-          <h2 className="text-2xl font-extrabold text-white">Gauntlet Complete!</h2>
+          <h2 className="font-display font-bold text-3xl text-white tracking-wide uppercase">Gauntlet Complete!</h2>
           <div>
-            <span className="text-5xl font-extrabold text-gold">{score}</span>
+            <span className="font-display font-bold text-6xl text-gold leading-none tabular-nums">{score}</span>
             <span className="text-white/40 text-lg ml-2">/ 3000 pts</span>
           </div>
           <p className="text-white/50 text-sm">{correctCount}/{TOTAL_QUESTIONS} correct answers</p>
@@ -283,22 +283,27 @@ export default function QuizPage() {
   return (
     <div className="page-fade space-y-5 pb-4">
       {/* Hero */}
-      <div className="-mx-4 px-6 py-7" style={{ background: 'linear-gradient(135deg, #1a0a00 0%, #3d1000 50%, #C4122E 100%)' }}>
-        <div className="text-5xl mb-2">🔥</div>
-        <h1 className="text-3xl font-extrabold text-white">The Gauntlet</h1>
-        <p className="text-gold/80 text-sm mt-1 italic">Prove your World Cup knowledge — highest score picks first</p>
-        <div className="flex gap-4 mt-3 text-xs text-white/50">
-          <span>20 questions</span>
-          <span>·</span>
-          <span>30s per question</span>
-          <span>·</span>
-          <span>Speed bonus</span>
+      <div className="-mx-4 px-6 py-8" style={{ background: 'linear-gradient(160deg, #1a0000 0%, #3d0a10 40%, #C4122E 80%, #8B0D20 100%)' }}>
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="text-xs font-bold tracking-[0.3em] text-white/40 uppercase mb-1">2026 World Cup</div>
+            <h1 className="font-display font-bold text-5xl text-white leading-none tracking-wide">THE<br /><span className="text-gold">GAUNTLET</span></h1>
+            <p className="text-white/60 text-sm mt-2">Highest score drafts first</p>
+            <div className="flex gap-3 mt-3 text-xs text-white/40">
+              <span>20 questions</span>
+              <span>·</span>
+              <span>30s each</span>
+              <span>·</span>
+              <span>Speed bonus</span>
+            </div>
+          </div>
+          <div className="text-5xl opacity-80 mt-1">🔥</div>
         </div>
       </div>
 
       {/* Player status cards */}
       <div className="space-y-2">
-        <h2 className="text-xs font-bold text-white/40 uppercase tracking-widest">Scores</h2>
+        <h2 className="font-display font-bold text-xl text-white tracking-wider uppercase">Scores</h2>
         {loading ? (
           [...Array(6)].map((_, i) => <div key={i} className="h-16 bg-bg-card rounded-xl animate-pulse" />)
         ) : (
@@ -314,8 +319,8 @@ export default function QuizPage() {
                       <div className="text-white/40 text-xs">{r.correct_count}/{TOTAL_QUESTIONS} correct</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-gold font-extrabold text-xl">{r.score}</div>
-                      <div className="text-white/30 text-xs">pts</div>
+                      <div className="font-display font-bold text-2xl text-gold leading-none tabular-nums">{r.score}</div>
+                      <div className="text-white/30 text-[10px] uppercase tracking-wider mt-0.5">pts</div>
                     </div>
                   </div>
                 );

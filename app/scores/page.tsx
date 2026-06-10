@@ -113,7 +113,7 @@ function ScoresAdmin() {
 
   return (
     <div className="page-fade space-y-4 pb-4">
-      <h1 className="text-2xl font-extrabold text-white">Score Entry 📊</h1>
+      <h1 className="font-display font-bold text-4xl text-white tracking-wide uppercase">Score Entry <span className="text-gold">📊</span></h1>
 
       {/* Round selector */}
       <div className="overflow-x-auto -mx-4 px-4">

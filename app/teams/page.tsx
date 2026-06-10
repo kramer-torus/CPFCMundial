@@ -63,22 +63,19 @@ export default function TeamsPage() {
 
   return (
     <div className="space-y-4 pb-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold text-white">Team Pool ⚽</h1>
-        <div className="text-xs text-white/40">
-          {draftedCount}/{teams.length} drafted
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="card text-center py-3">
-          <div className="text-2xl font-bold text-gold">{draftedCount}</div>
-          <div className="text-xs text-white/50">Drafted</div>
-        </div>
-        <div className="card text-center py-3">
-          <div className="text-2xl font-bold text-emerald-400">{availableCount}</div>
-          <div className="text-xs text-white/50">Available</div>
+      {/* Hero */}
+      <div className="-mx-4 px-6 py-6 mb-1" style={{ background: 'linear-gradient(160deg, #0a1428 0%, #1F3864 60%, #2d4a7a 100%)' }}>
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="text-xs font-bold tracking-[0.3em] text-white/40 uppercase mb-1">2026 World Cup</div>
+            <h1 className="font-display font-bold text-5xl text-white leading-none tracking-wide">TEAM<br /><span className="text-gold">POOL</span></h1>
+          </div>
+          <div className="text-right mt-1">
+            <div className="font-display font-bold text-4xl text-gold leading-none tabular-nums">{draftedCount}</div>
+            <div className="text-white/40 text-xs uppercase tracking-wider mt-0.5">drafted</div>
+            <div className="font-display font-bold text-2xl text-emerald-400 leading-none tabular-nums mt-2">{availableCount}</div>
+            <div className="text-white/40 text-xs uppercase tracking-wider mt-0.5">available</div>
+          </div>
         </div>
       </div>
 

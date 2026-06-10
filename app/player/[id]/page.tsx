@@ -57,14 +57,20 @@ export default function PlayerPage() {
         <ArrowLeft size={16} /> Back
       </button>
       {/* Header */}
-      <div className="card overflow-hidden" style={{ borderLeftColor: user.accent_colour, borderLeftWidth: 4 }}>
-        <div className="font-extrabold text-2xl text-white">{user.display_name}</div>
-        <div className="flex items-center gap-4 mt-2">
-          <div>
-            <span className="text-3xl font-extrabold text-gold">{totalPts}</span>
-            <span className="text-white/40 text-sm ml-1">pts</span>
+      <div className="rounded-xl overflow-hidden relative" style={{ background: `linear-gradient(135deg, ${user.accent_colour}22 0%, ${user.accent_colour}08 100%)`, border: `1px solid ${user.accent_colour}30` }}>
+        <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: user.accent_colour }} />
+        <div className="pl-5 pr-4 py-4">
+          <div className="font-display font-bold text-4xl text-white leading-none tracking-wide uppercase">{user.display_name}</div>
+          <div className="flex items-end gap-4 mt-3">
+            <div>
+              <div className="font-display font-bold text-5xl text-gold leading-none tabular-nums">{totalPts}</div>
+              <div className="text-white/30 text-[10px] uppercase tracking-wider mt-0.5">points</div>
+            </div>
+            <div className="pb-1 text-right">
+              <div className="font-bold text-white/80 text-lg tabular-nums">{alive}/{teams.length}</div>
+              <div className="text-white/30 text-[10px] uppercase tracking-wider">teams alive</div>
+            </div>
           </div>
-          <div className="text-white/50 text-sm">{alive}/{teams.length} teams alive</div>
         </div>
       </div>
       {/* Teams grid */}

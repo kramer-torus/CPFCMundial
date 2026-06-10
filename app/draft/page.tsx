@@ -157,22 +157,23 @@ function DraftRoom() {
     <div className="space-y-4 page-fade pb-4">
       {/* Top banner */}
       {!isDraftComplete ? (
-        <div className="rounded-xl p-4 text-white" style={{ background: 'linear-gradient(135deg, #C4122E, #8B0D20)' }}>
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-semibold text-white/70 uppercase tracking-wider">
-              Pick {currentPickNumber} of 48 · Tier {currentTier}
-            </span>
-            <span className="text-xs text-white/60">{direction === 'forward' ? '→' : '←'} snake</span>
+        <div className="rounded-xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #1a0408 0%, #C4122E 50%, #8B0D20 100%)' }}>
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-white/50 uppercase tracking-widest">
+                Pick {currentPickNumber} of 48 · Tier {currentTier}
+              </span>
+              <span className="text-xs text-white/40 font-mono">{direction === 'forward' ? '→' : '←'} snake</span>
+            </div>
+            <div className="font-display font-bold text-4xl leading-none" style={{ color: isMyTurn ? '#C9A84C' : 'white' }}>
+              {isMyTurn ? '⭐ YOUR TURN!' : `${(currentPlayer?.display_name || '?').toUpperCase()}'S TURN`}
+            </div>
+            {!isMyTurn && <p className="text-white/50 text-xs mt-1">Waiting for {currentPlayer?.display_name} to pick</p>}
+            <div className="mt-3 h-1 bg-white/20 rounded-full overflow-hidden">
+              <div className="h-full bg-gold transition-all rounded-full" style={{ width: `${(totalPicks / 48) * 100}%` }} />
+            </div>
+            <div className="text-right text-[10px] text-white/40 mt-1 tabular-nums">{totalPicks}/48 picks made</div>
           </div>
-          <div className="font-extrabold text-xl" style={{ color: currentPlayer?.accent_colour || 'white' }}>
-            {isMyTurn ? '⭐ Your turn!' : `${currentPlayer?.display_name || '?'}'s turn`}
-          </div>
-          {!isMyTurn && <p className="text-white/60 text-xs mt-0.5">Waiting for {currentPlayer?.display_name} to pick</p>}
-          {/* Progress bar */}
-          <div className="mt-3 h-1.5 bg-white/20 rounded-full overflow-hidden">
-            <div className="h-full bg-gold transition-all rounded-full" style={{ width: `${(totalPicks / 48) * 100}%` }} />
-          </div>
-          <div className="text-right text-xs text-white/50 mt-1">{totalPicks}/48 picks made</div>
         </div>
       ) : (
         <div className="card text-center py-6">
