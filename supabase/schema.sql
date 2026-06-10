@@ -15,7 +15,7 @@ create table if not exists users (
 create table if not exists teams (
   id uuid primary key default gen_random_uuid(),
   name text not null unique,
-  tier integer not null check (tier between 1 and 4),
+  tier integer not null check (tier between 1 and 3),
   flag_emoji text not null,
   confederation text not null,
   fifa_group text,

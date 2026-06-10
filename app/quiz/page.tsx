@@ -17,7 +17,7 @@ interface QuizResult {
 
 type QuizState = 'lobby' | 'playing' | 'done';
 
-const RANK_BADGES = ['🥇', '🥈', '🥉', '4th'];
+const RANK_BADGES = ['🥇', '🥈', '🥉', '4th', '5th', '6th', '7th', '8th'];
 const OPTION_LABELS = ['A', 'B', 'C', 'D'];
 
 export default function QuizPage() {
@@ -295,7 +295,7 @@ export default function QuizPage() {
       <div className="space-y-2">
         <h2 className="text-xs font-bold text-white/40 uppercase tracking-widest">Scores</h2>
         {loading ? (
-          [...Array(4)].map((_, i) => <div key={i} className="h-16 bg-bg-card rounded-xl animate-pulse" />)
+          [...Array(8)].map((_, i) => <div key={i} className="h-16 bg-bg-card rounded-xl animate-pulse" />)
         ) : (
           sortedResults.length > 0
             ? sortedResults.map((r, idx) => {

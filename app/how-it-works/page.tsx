@@ -9,7 +9,7 @@ export default function HowItWorksPage() {
       <section className="card space-y-2">
         <h2 className="text-palace-red font-bold text-lg">The Game</h2>
         <p className="text-white/70 text-sm leading-relaxed">
-          CPFCMundial is a draft game for the 2026 World Cup. 4 players draft national teams and earn points as those teams win and progress through the tournament. The player whose teams score the most points wins.
+          CPFCMundial is a draft game for the 2026 World Cup. 8 players draft national teams and earn points as those teams win and progress through the tournament. The player whose teams score the most points wins.
         </p>
       </section>
 
@@ -17,18 +17,18 @@ export default function HowItWorksPage() {
       <section className="card space-y-3">
         <h2 className="text-palace-red font-bold text-lg">The Draft</h2>
         <ul className="space-y-2 text-sm text-white/70">
-          <li className="flex gap-2"><span className="flex-shrink-0">👥</span>4 players: Kev, Franks, Kangars, Jakob</li>
-          <li className="flex gap-2"><span className="flex-shrink-0">🌍</span>48 qualified teams split into 4 tiers by FIFA ranking: Elite, Contenders, Dark Horses, Underdogs</li>
-          <li className="flex gap-2"><span className="flex-shrink-0">⚽</span>Each player drafts 12 teams total — exactly 3 from each tier. This guarantees everyone a balanced spread of strong and weak teams.</li>
+          <li className="flex gap-2"><span className="flex-shrink-0">👥</span>8 players: Kev, Franks, Kangars, Jakob, Matty Eagles, Bananaman, Liam and Manuel</li>
+          <li className="flex gap-2"><span className="flex-shrink-0">🌍</span>48 qualified teams split into 3 tiers of 16 by FIFA ranking: Elite (1–16), Contenders (17–32), Dark Horses (33–48)</li>
+          <li className="flex gap-2"><span className="flex-shrink-0">⚽</span>Each player drafts 6 teams total — exactly 2 from each tier. This guarantees everyone a balanced spread of strong and weak teams.</li>
           <li className="flex gap-2"><span className="flex-shrink-0">🐍</span>
             <div>
               Picks follow a <strong className="text-white">snake order</strong> that reverses each round to keep it fair:
               <div className="mt-1.5 bg-white/5 rounded-lg p-2.5 font-mono text-xs space-y-0.5">
-                <div>Round 1: <span className="text-palace-red">Kev</span> → <span className="text-blue-400">Franks</span> → <span className="text-gold">Kangars</span> → <span className="text-emerald-400">Jakob</span></div>
-                <div>Round 2: <span className="text-emerald-400">Jakob</span> → <span className="text-gold">Kangars</span> → <span className="text-blue-400">Franks</span> → <span className="text-palace-red">Kev</span></div>
-                <div>Round 3: <span className="text-palace-red">Kev</span> → <span className="text-blue-400">Franks</span> → <span className="text-gold">Kangars</span> → <span className="text-emerald-400">Jakob</span> …</div>
+                <div>Round 1: <span className="text-palace-red">Kev</span> → <span className="text-blue-400">Franks</span> → <span className="text-gold">Kangars</span> → <span className="text-emerald-400">Jakob</span> → <span className="text-orange-400">Matty</span> → <span className="text-yellow-400">Bananaman</span> → <span className="text-purple-400">Liam</span> → <span className="text-pink-400">Manuel</span></div>
+                <div>Round 2: <span className="text-pink-400">Manuel</span> → <span className="text-purple-400">Liam</span> → <span className="text-yellow-400">Bananaman</span> → <span className="text-orange-400">Matty</span> → <span className="text-emerald-400">Jakob</span> → <span className="text-gold">Kangars</span> → <span className="text-blue-400">Franks</span> → <span className="text-palace-red">Kev</span></div>
+                <div>Round 3: <span className="text-palace-red">Kev</span> → <span className="text-blue-400">Franks</span> … (repeats for each tier)</div>
               </div>
-              Repeat through all 4 tiers until all 48 teams are drafted (48 picks total).
+              Repeat through all 3 tiers until all 48 teams are drafted (48 picks total).
             </div>
           </li>
           <li className="flex gap-2"><span className="flex-shrink-0">🔒</span>You can only pick on your turn. Once made, a pick is locked.</li>
@@ -36,10 +36,29 @@ export default function HowItWorksPage() {
         </ul>
       </section>
 
+      {/* Tiers */}
+      <section className="card space-y-3">
+        <h2 className="text-palace-red font-bold text-lg">Tiers</h2>
+        <div className="space-y-2 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="pill bg-emerald-600/20 text-emerald-400 border-emerald-600/40">T1 · Elite</span>
+            <span className="text-white/60">FIFA #1–16 · 16 teams · 2 picks per player</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="pill bg-amber-500/20 text-amber-400 border-amber-500/40">T2 · Contenders</span>
+            <span className="text-white/60">FIFA #17–32 · 16 teams · 2 picks per player</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="pill bg-purple-600/20 text-purple-400 border-purple-600/40">T3 · Dark Horses</span>
+            <span className="text-white/60">FIFA #33–48 · 16 teams · 2 picks per player</span>
+          </div>
+        </div>
+      </section>
+
       {/* Scoring */}
       <section className="card space-y-3">
         <h2 className="text-palace-red font-bold text-lg">Scoring</h2>
-        <p className="text-white/50 text-xs">Points awarded per team per match. Your score = combined total across all 12 of your teams.</p>
+        <p className="text-white/50 text-xs">Points awarded per team per match. Your score = combined total across all 6 of your teams.</p>
 
         <div>
           <p className="text-white/60 text-xs font-semibold uppercase tracking-wider mb-1.5">Group Stage (GW1, GW2, GW3)</p>
@@ -97,7 +116,7 @@ export default function HowItWorksPage() {
       {/* Tip */}
       <section className="card bg-palace-red/10 border-palace-red/20">
         <p className="text-sm text-white/80 leading-relaxed">
-          <span className="text-gold font-bold">💡 Tip:</span> Tier 1 teams score more reliably, but a deep run from a lower-tier underdog — worth the same per win — can win you the whole thing. Balance is everything.
+          <span className="text-gold font-bold">💡 Tip:</span> Tier 1 teams score more reliably, but a deep run from a lower-tier dark horse — worth the same per win — can win you the whole thing. Balance is everything.
         </p>
       </section>
 

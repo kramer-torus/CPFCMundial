@@ -10,7 +10,7 @@ import ConfirmSheet from '@/components/ConfirmSheet';
 import { GameUser, Team, DraftPick, TIER_COLORS } from '@/lib/types';
 import { getPlayerIndexForPick, getTierForPickNumber, getSnakeDirection } from '@/lib/draft-utils';
 
-const PLAYER_ORDER = ['Kev', 'Franks', 'Kangars', 'Jakob'];
+const PLAYER_ORDER = ['Kev', 'Franks', 'Kangars', 'Jakob', 'Matty Eagles', 'Bananaman', 'Liam', 'Manuel'];
 
 export default function DraftPage() {
   return <AuthGuard><DraftRoom /></AuthGuard>;
@@ -123,7 +123,7 @@ function DraftRoom() {
   }
 
   // Teams grouped by tier
-  const tierTeams = [1, 2, 3, 4].map(t => ({
+  const tierTeams = [1, 2, 3].map(t => ({
     tier: t,
     teams: teams.filter(team => team.tier === t),
   }));
@@ -173,7 +173,7 @@ function DraftRoom() {
         >
           All
         </button>
-        {[1, 2, 3, 4].map(t => {
+        {[1, 2, 3].map(t => {
           const tc = TIER_COLORS[t];
           return (
             <button

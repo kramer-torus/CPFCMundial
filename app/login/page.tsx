@@ -8,10 +8,14 @@ import { hashPin, setSession, getSession } from '@/lib/auth';
 import type { GameUser } from '@/lib/types';
 
 const PLAYERS = [
-  { name: 'Kev', colour: '#C4122E' },
-  { name: 'Franks', colour: '#3B82F6' },
-  { name: 'Kangars', colour: '#C9A84C' },
-  { name: 'Jakob', colour: '#10B981' },
+  { name: 'Kev',          colour: '#C4122E' },
+  { name: 'Franks',       colour: '#3B82F6' },
+  { name: 'Kangars',      colour: '#C9A84C' },
+  { name: 'Jakob',        colour: '#10B981' },
+  { name: 'Matty Eagles', colour: '#F97316' },
+  { name: 'Bananaman',    colour: '#EAB308' },
+  { name: 'Liam',         colour: '#A855F7' },
+  { name: 'Manuel',       colour: '#EC4899' },
 ];
 
 export default function LoginPage() {
