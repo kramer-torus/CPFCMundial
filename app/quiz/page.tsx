@@ -41,13 +41,18 @@ export default function QuizPage() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchData = useCallback(async () => {
-    const [usersRes, resultsRes] = await Promise.all([
-      supabase.from('users').select('*').order('created_at'),
-      supabase.from('quiz_results').select('*'),
-    ]);
-    setUsers(usersRes.data || []);
-    setResults(resultsRes.data || []);
-    setLoading(false);
+    try {
+      const [usersRes, resultsRes] = await Promise.all([
+        supabase.from('users').select('*').order('created_at'),
+        supabase.from('quiz_results').select('*'),
+      ]);
+      setUsers(usersRes.data || []);
+      setResults(resultsRes.data || []);
+    } catch {
+      // Network failure
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

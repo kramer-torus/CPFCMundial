@@ -20,24 +20,25 @@ export default function TeamsPage() {
   const [tierFilter, setTierFilter] = useState<TierFilter>('all');
 
   const fetchData = useCallback(async () => {
-    const [teamsRes, picksRes, playersRes] = await Promise.all([
-      supabase.from('teams').select('*').order('tier').order('name'),
-      supabase.from('draft_picks').select('*'),
-      supabase.from('users').select('*'),
-    ]);
-
-    const allTeams: Team[] = teamsRes.data || [];
-    const picks: DraftPick[] = picksRes.data || [];
-    const users: GameUser[] = playersRes.data || [];
-
-    const teamsWithDrafter: TeamWithDrafter[] = allTeams.map(team => {
-      const pick = picks.find(p => p.team_id === team.id);
-      const drafter = pick ? (users.find(u => u.id === pick.user_id) || null) : null;
-      return { ...team, drafter };
-    });
-
-    setTeams(teamsWithDrafter);
-    setLoading(false);
+    try {
+      const [teamsRes, picksRes, playersRes] = await Promise.all([
+        supabase.from('teams').select('*').order('tier').order('name'),
+        supabase.from('draft_picks').select('*'),
+        supabase.from('users').select('*'),
+      ]);
+      const allTeams: Team[] = teamsRes.data || [];
+      const picks: DraftPick[] = picksRes.data || [];
+      const users: GameUser[] = playersRes.data || [];
+      setTeams(allTeams.map(team => {
+        const pick = picks.find(p => p.team_id === team.id);
+        const drafter = pick ? (users.find(u => u.id === pick.user_id) || null) : null;
+        return { ...team, drafter };
+      }));
+    } catch {
+      // Network failure — show empty state
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

@@ -29,25 +29,28 @@ function DraftRoom() {
   const [tierFilter, setTierFilter] = useState<number | null>(null);
 
   const fetchData = useCallback(async () => {
-    const [usersRes, teamsRes, picksRes] = await Promise.all([
-      supabase.from('users').select('*').order('created_at'),
-      supabase.from('teams').select('*').order('tier').order('name'),
-      supabase.from('draft_picks').select('*').order('pick_number'),
-    ]);
-    // Sort by draft_position if set (from quiz), otherwise fall back to hardcoded order
-    const rawUsers: GameUser[] = usersRes.data || [];
-    const sortedUsers = (() => {
-      const allHavePosition = rawUsers.length > 0 && rawUsers.every(u => u.draft_position !== null);
-      if (allHavePosition) {
-        return [...rawUsers].sort((a, b) => (a.draft_position ?? 99) - (b.draft_position ?? 99));
-      }
-      // Fall back to hardcoded order
-      return PLAYER_ORDER.map(name => rawUsers.find(u => u.display_name === name)).filter(Boolean) as GameUser[];
-    })();
-    setUsers(sortedUsers);
-    setTeams(teamsRes.data || []);
-    setPicks(picksRes.data || []);
-    setLoading(false);
+    try {
+      const [usersRes, teamsRes, picksRes] = await Promise.all([
+        supabase.from('users').select('*').order('created_at'),
+        supabase.from('teams').select('*').order('tier').order('name'),
+        supabase.from('draft_picks').select('*').order('pick_number'),
+      ]);
+      const rawUsers: GameUser[] = usersRes.data || [];
+      const sortedUsers = (() => {
+        const allHavePosition = rawUsers.length > 0 && rawUsers.every(u => u.draft_position !== null);
+        if (allHavePosition) {
+          return [...rawUsers].sort((a, b) => (a.draft_position ?? 99) - (b.draft_position ?? 99));
+        }
+        return PLAYER_ORDER.map(name => rawUsers.find(u => u.display_name === name)).filter(Boolean) as GameUser[];
+      })();
+      setUsers(sortedUsers);
+      setTeams(teamsRes.data || []);
+      setPicks(picksRes.data || []);
+    } catch {
+      // Network failure — show empty state
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

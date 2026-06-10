@@ -27,17 +27,22 @@ export default function FixturesPage() {
 
   async function load() {
     setLoading(true);
-    const [{ fixtures: f, error: e }, picksRes, usersRes] = await Promise.all([
-      fetchWorldCupFixtures(),
-      supabase.from('draft_picks').select('*'),
-      supabase.from('users').select('*'),
-    ]);
-    setFixtures(f);
-    setError(e);
-    setPicks(picksRes.data || []);
-    setUsers(usersRes.data || []);
-    setLastFetch(new Date());
-    setLoading(false);
+    try {
+      const [{ fixtures: f, error: e }, picksRes, usersRes] = await Promise.all([
+        fetchWorldCupFixtures(),
+        supabase.from('draft_picks').select('*'),
+        supabase.from('users').select('*'),
+      ]);
+      setFixtures(f);
+      setError(e);
+      setPicks(picksRes.data || []);
+      setUsers(usersRes.data || []);
+      setLastFetch(new Date());
+    } catch {
+      setError('FETCH_ERROR');
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { load(); }, []);

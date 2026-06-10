@@ -16,23 +16,27 @@ export default function PlayerPage() {
 
   useEffect(() => {
     async function fetchData() {
-      const [userRes, picksRes, pointsRes] = await Promise.all([
-        supabase.from('users').select('*').eq('id', id).single(),
-        supabase.from('draft_picks').select('*, teams(*)').eq('user_id', id).order('pick_number'),
-        supabase.from('team_points').select('*'),
-      ]);
-      const u = userRes.data as GameUser;
-      const picks: (DraftPick & { teams: Team })[] = picksRes.data || [];
-      const allPoints: TeamPoints[] = pointsRes.data || [];
-      setUser(u);
-      const enriched = picks.map(p => {
-        const teamId = p.team_id;
-        const pts = allPoints.filter(tp => tp.team_id === teamId).reduce((s, tp) => s + tp.points, 0);
-        const elim = allPoints.some(tp => tp.team_id === teamId && KNOCKOUT_ROUNDS.includes(tp.round) && tp.points === 0);
-        return { ...p.teams, points: pts, eliminated: elim };
-      });
-      setTeams(enriched);
-      setLoading(false);
+      try {
+        const [userRes, picksRes, pointsRes] = await Promise.all([
+          supabase.from('users').select('*').eq('id', id).single(),
+          supabase.from('draft_picks').select('*, teams(*)').eq('user_id', id).order('pick_number'),
+          supabase.from('team_points').select('*'),
+        ]);
+        const u = userRes.data as GameUser;
+        const picks: (DraftPick & { teams: Team })[] = picksRes.data || [];
+        const allPoints: TeamPoints[] = pointsRes.data || [];
+        setUser(u);
+        setTeams(picks.map(p => {
+          const teamId = p.team_id;
+          const pts = allPoints.filter(tp => tp.team_id === teamId).reduce((s, tp) => s + tp.points, 0);
+          const elim = allPoints.some(tp => tp.team_id === teamId && KNOCKOUT_ROUNDS.includes(tp.round) && tp.points === 0);
+          return { ...p.teams, points: pts, eliminated: elim };
+        }));
+      } catch {
+        // Network failure
+      } finally {
+        setLoading(false);
+      }
     }
     fetchData();
   }, [id]);

@@ -40,18 +40,23 @@ export default function HomePage() {
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
 
   const fetchData = useCallback(async () => {
-    const [usersRes, picksRes, pointsRes] = await Promise.all([
-      supabase.from('users').select('*').order('display_name'),
-      supabase.from('draft_picks').select('*'),
-      supabase.from('team_points').select('*'),
-    ]);
-    const users: GameUser[] = usersRes.data || [];
-    const picks: DraftPick[] = picksRes.data || [];
-    const points: TeamPoints[] = pointsRes.data || [];
-    setHasPicks(picks.length > 0);
-    setBoard(calcLeaderboard(users, picks, points));
-    setUpdatedAt(new Date());
-    setLoading(false);
+    try {
+      const [usersRes, picksRes, pointsRes] = await Promise.all([
+        supabase.from('users').select('*').order('display_name'),
+        supabase.from('draft_picks').select('*'),
+        supabase.from('team_points').select('*'),
+      ]);
+      const users: GameUser[] = usersRes.data || [];
+      const picks: DraftPick[] = picksRes.data || [];
+      const points: TeamPoints[] = pointsRes.data || [];
+      setHasPicks(picks.length > 0);
+      setBoard(calcLeaderboard(users, picks, points));
+      setUpdatedAt(new Date());
+    } catch {
+      // Network failure — show empty state
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
