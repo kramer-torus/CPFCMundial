@@ -5,6 +5,7 @@ export interface GameUser {
   is_admin: boolean;
   accent_colour: string;
   draft_position?: number | null;
+  phone_number?: string | null;
 }
 
 export interface Team {

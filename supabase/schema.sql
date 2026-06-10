@@ -8,6 +8,7 @@ create table if not exists users (
   is_admin boolean not null default false,
   accent_colour text not null default '#C4122E',
   draft_position integer,
+  phone_number text,
   created_at timestamptz default now()
 );
 

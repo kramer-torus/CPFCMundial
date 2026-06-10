@@ -98,6 +98,20 @@ function DraftRoom() {
     setSaving(false);
     setConfirm(null);
     fetchData();
+    // Notify next player (fire-and-forget — don't block UI)
+    if (pickNum < 48) {
+      const nextPickNum = pickNum + 1;
+      const nextPlayerIdx = getPlayerIndexForPick(nextPickNum);
+      const nextPlayer = users[nextPlayerIdx];
+      const nextTier = getTierForPickNumber(nextPickNum);
+      if (nextPlayer) {
+        fetch('/api/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'draft_turn', userId: nextPlayer.id, pickNumber: nextPickNum, tier: nextTier }),
+        }).catch(() => {});
+      }
+    }
   }
 
   async function handleUndo() {

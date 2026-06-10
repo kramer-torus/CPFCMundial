@@ -349,8 +349,24 @@ export default function QuizPage() {
       )}
 
       {session && myResult && !allDone && (
-        <div className="card text-center py-4 text-white/50 text-sm">
-          You&apos;re done — waiting for the others…
+        <div className="card text-center py-4 text-white/50 text-sm space-y-3">
+          <p>You&apos;re done — waiting for the others…</p>
+          {session.is_admin && (
+            <button
+              onClick={async () => {
+                const res = await fetch('/api/notify', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ type: 'quiz_reminder' }),
+                });
+                const data = await res.json();
+                alert(data.ok ? `Reminder sent to ${data.sent} players 📲` : 'WhatsApp not configured');
+              }}
+              className="text-xs bg-white/10 hover:bg-white/20 text-white/70 font-semibold px-4 py-2 rounded-lg transition-all"
+            >
+              📲 Send WhatsApp Reminder to Pending Players
+            </button>
+          )}
         </div>
       )}
 

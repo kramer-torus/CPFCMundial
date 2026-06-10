@@ -70,6 +70,27 @@ function ScoresAdmin() {
     setResults(prev => ({ ...prev, [teamId]: result }));
   }
 
+  async function broadcastLeaderboard() {
+    const [usersRes, picksRes, pointsRes] = await Promise.all([
+      supabase.from('users').select('id, display_name'),
+      supabase.from('draft_picks').select('user_id, team_id'),
+      supabase.from('team_points').select('team_id, points'),
+    ]);
+    const users = usersRes.data || [];
+    const picks = picksRes.data || [];
+    const allPoints = pointsRes.data || [];
+    const board = users.map((u: { id: string; display_name: string }) => {
+      const myTeams = picks.filter((p: { user_id: string }) => p.user_id === u.id).map((p: { team_id: string }) => p.team_id);
+      const pts = allPoints.filter((tp: { team_id: string }) => myTeams.includes(tp.team_id)).reduce((s: number, tp: { points: number }) => s + tp.points, 0);
+      return { name: u.display_name, pts, alive: myTeams.length };
+    }).sort((a: { pts: number }, b: { pts: number }) => b.pts - a.pts);
+    await fetch('/api/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'leaderboard', board }),
+    });
+  }
+
   async function handleSave() {
     setSaving(true);
     const rows = teams
@@ -85,6 +106,8 @@ function ScoresAdmin() {
     if (!error) {
       setToast(`Saved! ${rows.length} teams updated`);
       setTimeout(() => setToast(''), 3000);
+      // Broadcast updated leaderboard via WhatsApp (fire-and-forget)
+      broadcastLeaderboard().catch(() => {});
     }
   }
 
