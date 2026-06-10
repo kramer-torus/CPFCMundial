@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { getSession } from '@/lib/auth';
 import { GameUser, DraftPick, TeamPoints, PlayerLeaderboard, STAGE_ORDER, KNOCKOUT_ROUNDS } from '@/lib/types';
 import ShareButton from '@/components/ShareButton';
 
@@ -38,6 +39,10 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [hasPicks, setHasPicks] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+
+  useEffect(() => {
+    if (!getSession()) router.replace('/login');
+  }, [router]);
 
   const fetchData = useCallback(async () => {
     try {
