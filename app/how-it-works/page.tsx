@@ -17,15 +17,15 @@ export default function HowItWorksPage() {
       <section className="card space-y-3">
         <h2 className="text-palace-red font-bold text-lg">The Draft</h2>
         <ul className="space-y-2 text-sm text-white/70">
-          <li className="flex gap-2"><span className="flex-shrink-0">👥</span>6 players: Kev, Franks, Kangars, Jakob, Matty Eagles and Liam</li>
+          <li className="flex gap-2"><span className="flex-shrink-0">👥</span>6 players: Kev, Franks, Kangars, Jakob, Matty Eagles and Bananaman</li>
           <li className="flex gap-2"><span className="flex-shrink-0">🌍</span>48 qualified teams split into 4 tiers of 12 by FIFA ranking: Elite (#1–12), Contenders (#13–24), Dark Horses (#25–36), Wildcards (#37+)</li>
           <li className="flex gap-2"><span className="flex-shrink-0">⚽</span>Each player drafts 8 teams total — exactly 2 from each tier. Everyone gets a mix of stars and underdogs.</li>
           <li className="flex gap-2"><span className="flex-shrink-0">🐍</span>
             <div>
               Picks follow a <strong className="text-white">snake order</strong> that reverses each round to keep it fair:
               <div className="mt-1.5 bg-white/5 rounded-lg p-2.5 font-mono text-xs space-y-0.5">
-                <div>Round 1: <span className="text-palace-red">Kev</span> → <span className="text-blue-400">Franks</span> → <span className="text-gold">Kangars</span> → <span className="text-emerald-400">Jakob</span> → <span className="text-orange-400">Matty</span> → <span className="text-purple-400">Liam</span></div>
-                <div>Round 2: <span className="text-purple-400">Liam</span> → <span className="text-orange-400">Matty</span> → <span className="text-emerald-400">Jakob</span> → <span className="text-gold">Kangars</span> → <span className="text-blue-400">Franks</span> → <span className="text-palace-red">Kev</span></div>
+                <div>Round 1: <span className="text-palace-red">Kev</span> → <span className="text-blue-400">Franks</span> → <span className="text-gold">Kangars</span> → <span className="text-emerald-400">Jakob</span> → <span className="text-orange-400">Matty</span> → <span className="text-purple-400">Bananaman</span></div>
+                <div>Round 2: <span className="text-purple-400">Bananaman</span> → <span className="text-orange-400">Matty</span> → <span className="text-emerald-400">Jakob</span> → <span className="text-gold">Kangars</span> → <span className="text-blue-400">Franks</span> → <span className="text-palace-red">Kev</span></div>
                 <div>Round 3: <span className="text-palace-red">Kev</span> → <span className="text-blue-400">Franks</span> … (repeats for each tier)</div>
               </div>
               Repeat through all 4 tiers until all 48 teams are drafted (48 picks total).

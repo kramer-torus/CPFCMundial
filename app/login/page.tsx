@@ -13,7 +13,7 @@ const PLAYERS = [
   { name: 'Kangars',      colour: '#C9A84C' },
   { name: 'Jakob',        colour: '#10B981' },
   { name: 'Matty Eagles', colour: '#F97316' },
-  { name: 'Liam',         colour: '#A855F7' },
+  { name: 'Bananaman',    colour: '#A855F7' },
 ];
 
 function initials(name: string) {
