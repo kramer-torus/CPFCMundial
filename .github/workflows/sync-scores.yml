@@ -15,7 +15,6 @@ jobs:
       - name: Trigger score sync
         run: |
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             "https://cpfc-mundial.vercel.app/api/sync-scores")
           echo "Response status: $STATUS"
           if [ "$STATUS" != "200" ]; then
