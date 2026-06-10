@@ -4,6 +4,7 @@ import BottomNav from '@/components/BottomNav';
 import Header from '@/components/Header';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://cpfc-mundial.vercel.app'),
   title: 'CPFCMundial',
   description: 'Glad All Over the World — CPFC 2026 World Cup Draft Game',
   manifest: '/manifest.json',

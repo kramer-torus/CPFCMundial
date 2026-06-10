@@ -60,7 +60,7 @@ export default function PlayerPage() {
             <span className="text-3xl font-extrabold text-gold">{totalPts}</span>
             <span className="text-white/40 text-sm ml-1">pts</span>
           </div>
-          <div className="text-white/50 text-sm">{alive}/12 teams alive</div>
+          <div className="text-white/50 text-sm">{alive}/{teams.length} teams alive</div>
         </div>
       </div>
       {/* Teams grid */}
