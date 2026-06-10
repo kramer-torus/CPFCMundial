@@ -10,7 +10,7 @@ export interface GameUser {
 export interface Team {
   id: string;
   name: string;
-  tier: 1 | 2 | 3;
+  tier: 1 | 2 | 3 | 4;
   flag_emoji: string;
   confederation: string;
   fifa_group: string;       // "A" through "L"
@@ -60,6 +60,7 @@ export const TIER_COLORS: Record<number, { bg: string; text: string; border: str
   1: { bg: 'bg-emerald-600/20', text: 'text-emerald-400', border: 'border-emerald-600/40', label: 'Elite' },
   2: { bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500/40', label: 'Contenders' },
   3: { bg: 'bg-purple-600/20', text: 'text-purple-400', border: 'border-purple-600/40', label: 'Dark Horses' },
+  4: { bg: 'bg-slate-600/20', text: 'text-slate-400', border: 'border-slate-600/40', label: 'Wildcards' },
 };
 
 export const PLAYER_COLORS = [
@@ -68,9 +69,7 @@ export const PLAYER_COLORS = [
   '#C9A84C', // Kangars - Gold
   '#10B981', // Jakob - Emerald
   '#F97316', // Matty Eagles - Orange
-  '#EAB308', // Bananaman - Yellow (🍌)
   '#A855F7', // Liam - Purple
-  '#EC4899', // Manuel - Pink
 ];
 
 export interface Session {

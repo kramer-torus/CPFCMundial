@@ -1,20 +1,20 @@
-// 8 players, 6 rounds of 8 picks = 48 total
-// 3 tiers of 16 teams — 2 picks per tier per player
+// 6 players, 8 rounds of 6 picks = 48 total
+// 4 tiers of 12 teams — 2 picks per tier per player
 
 export function getPlayerIndexForPick(pickNumber: number): number {
   const pickIndex = pickNumber - 1;
-  const roundIndex = Math.floor(pickIndex / 8);  // 0–5
-  const posInRound = pickIndex % 8;              // 0–7
+  const roundIndex = Math.floor(pickIndex / 6);  // 0–7
+  const posInRound = pickIndex % 6;              // 0–5
   const ascending = roundIndex % 2 === 0;
-  return ascending ? posInRound : 7 - posInRound;
+  return ascending ? posInRound : 5 - posInRound;
 }
 
-export function getTierForPickNumber(pickNumber: number): 1 | 2 | 3 {
-  return (Math.floor((pickNumber - 1) / 16) + 1) as 1 | 2 | 3;
+export function getTierForPickNumber(pickNumber: number): 1 | 2 | 3 | 4 {
+  return (Math.floor((pickNumber - 1) / 12) + 1) as 1 | 2 | 3 | 4;
 }
 
 export function getSnakeDirection(pickNumber: number): 'forward' | 'reverse' {
-  const roundIndex = Math.floor((pickNumber - 1) / 8);
+  const roundIndex = Math.floor((pickNumber - 1) / 6);
   return roundIndex % 2 === 0 ? 'forward' : 'reverse';
 }
 

@@ -10,7 +10,7 @@ interface TeamWithDrafter extends Team {
   drafter: GameUser | null;
 }
 
-type TierFilter = 'all' | 1 | 2 | 3;
+type TierFilter = 'all' | 1 | 2 | 3 | 4;
 
 export default function TeamsPage() {
   const router = useRouter();
@@ -92,7 +92,7 @@ export default function TeamsPage() {
 
       {/* Tier filter */}
       <div className="flex gap-2 overflow-x-auto pb-1">
-        {(['all', 1, 2, 3] as TierFilter[]).map(t => (
+        {(['all', 1, 2, 3, 4] as TierFilter[]).map(t => (
           <button
             key={String(t)}
             onClick={() => setTierFilter(t)}
