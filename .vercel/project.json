@@ -1,0 +1,16 @@
+{
+  "projectId": "prj_swRAarQ3barG5TKjVJiXcY58FctA",
+  "orgId": "team_rHUCH3jOOGmPK1Z49HhQVMXa",
+  "projectName": "cpfc-mundial",
+  "settings": {
+    "createdAt": 1780659450083,
+    "framework": "nextjs",
+    "devCommand": null,
+    "installCommand": null,
+    "buildCommand": null,
+    "outputDirectory": ".next",
+    "rootDirectory": null,
+    "directoryListing": false,
+    "nodeVersion": "24.x"
+  }
+}
