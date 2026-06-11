@@ -21,6 +21,7 @@ export interface AuditLog {
   id: string; user_id: string; action: string; detail: string; created_at: string;
 }
 
+
 export type Round = 'GW1' | 'GW2' | 'GW3' | 'R32' | 'R16' | 'QF' | 'SF' | '3PO' | 'FINAL';
 export const ROUNDS: Round[] = ['GW1', 'GW2', 'GW3', 'R32', 'R16', 'QF', 'SF', '3PO', 'FINAL'];
 export const KNOCKOUT_ROUNDS: Round[] = ['R32', 'R16', 'QF', 'SF', '3PO', 'FINAL'];
