@@ -32,7 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Header />
         <main className="max-w-lg mx-auto px-4 pt-4 pb-24">{children}</main>
         <BottomNav />
-        <div className="text-center text-white/15 text-[10px] pb-1">v5.2</div>
+        <div className="text-center text-white/15 text-[10px] pb-1">v5.3</div>
       </body>
     </html>
   );
