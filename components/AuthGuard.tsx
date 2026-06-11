@@ -19,6 +19,14 @@ export default function AuthGuard({ children, adminOnly = false }: { children: R
       return;
     }
     setSession(s);
+
+    // Background score sync — throttled to once every 2 minutes per device
+    const SYNC_KEY = 'last_score_sync';
+    const last = Number(localStorage.getItem(SYNC_KEY) ?? 0);
+    if (Date.now() - last > 2 * 60 * 1000) {
+      localStorage.setItem(SYNC_KEY, String(Date.now()));
+      fetch('/api/sync-scores').catch(() => {});
+    }
   }, [router, adminOnly]);
 
   if (session === 'loading') {
