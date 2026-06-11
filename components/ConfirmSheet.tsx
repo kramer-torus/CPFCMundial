@@ -21,7 +21,7 @@ export default function ConfirmSheet({ title, body, confirmLabel = 'Confirm', ca
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onCancel}>
       <div
-        className="w-full max-w-lg bg-bg-card border border-white/10 rounded-t-2xl p-6 animate-fade-in"
+        className="w-full max-w-lg bg-bg-card border border-white/10 rounded-t-2xl p-6 pb-28 animate-fade-in"
         onClick={e => e.stopPropagation()}
       >
         <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4" />
