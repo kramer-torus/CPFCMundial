@@ -10,7 +10,7 @@ import ConfirmSheet from '@/components/ConfirmSheet';
 import { GameUser, Team, DraftPick, TIER_COLORS } from '@/lib/types';
 import { getPlayerIndexForPick, getTierForPickNumber, getSnakeDirection } from '@/lib/draft-utils';
 
-const PLAYER_ORDER = ['Kev', 'Franks', 'Kangars', 'Jakob', 'Matty Eagles', 'Liam'];
+const PLAYER_ORDER = ['Kev', 'Franks', 'Kangars', 'Jakob', 'Matty Eagles', 'Bananaman'];
 
 export default function DraftPage() {
   return <AuthGuard><DraftRoom /></AuthGuard>;
@@ -61,7 +61,6 @@ function DraftRoom() {
     return () => { supabase.removeChannel(ch); };
   }, [fetchData]);
 
-  // Computed state
   const totalPicks = picks.length;
   const currentPickNumber = totalPicks + 1;
   const isDraftComplete = totalPicks >= 48;
@@ -71,23 +70,19 @@ function DraftRoom() {
   const direction = isDraftComplete ? 'forward' : getSnakeDirection(currentPickNumber);
   const isMyTurn = session && currentPlayer && session.display_name === currentPlayer.display_name;
 
-  // Map teamId -> pick
   const pickByTeamId = new Map(picks.map(p => [p.team_id, p]));
-  // Map userId -> user
   const userById = new Map(users.map(u => [u.id, u]));
-  // Last pick
   const lastPick = picks.length > 0 ? picks[picks.length - 1] : null;
 
   async function handlePick(team: Team) {
     if (!isMyTurn || saving) return;
     setSaving(true);
     const pickNum = totalPicks + 1;
-    // Re-validate server-side: check pick_number not taken
     const { count } = await supabase.from('draft_picks').select('*', { count: 'exact', head: true });
     if ((count ?? 0) !== totalPicks) {
       setSaving(false);
       await fetchData();
-      return; // race condition — refetch
+      return;
     }
     await supabase.from('draft_picks').insert({
       user_id: session!.id,
@@ -98,7 +93,6 @@ function DraftRoom() {
     setSaving(false);
     setConfirm(null);
     fetchData();
-    // Notify next player (fire-and-forget — don't block UI)
     if (pickNum < 48) {
       const nextPickNum = pickNum + 1;
       const nextPlayerIdx = getPlayerIndexForPick(nextPickNum);
@@ -118,7 +112,6 @@ function DraftRoom() {
     if (!lastPick || saving) return;
     setSaving(true);
     await supabase.from('draft_picks').delete().eq('id', lastPick.id);
-    // log to audit_log
     await supabase.from('audit_log').insert({
       user_id: session!.id,
       action: 'UNDO_PICK',
@@ -139,7 +132,6 @@ function DraftRoom() {
     });
   }
 
-  // Teams grouped by tier
   const tierTeams = [1, 2, 3, 4].map(t => ({
     tier: t,
     teams: teams.filter(team => team.tier === t),
@@ -155,7 +147,6 @@ function DraftRoom() {
 
   return (
     <div className="space-y-4 page-fade pb-4">
-      {/* Top banner */}
       {!isDraftComplete ? (
         <div className="rounded-xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #1a0408 0%, #C4122E 50%, #8B0D20 100%)' }}>
           <div className="p-4">
@@ -183,7 +174,6 @@ function DraftRoom() {
         </div>
       )}
 
-      {/* Tier filter pills */}
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
         <button
           onClick={() => setTierFilter(null)}
@@ -205,7 +195,6 @@ function DraftRoom() {
         })}
       </div>
 
-      {/* Tier sections */}
       {tierTeams
         .filter(({ tier }) => tierFilter === null || tierFilter === tier)
         .map(({ tier, teams: tierTeamList }) => {
@@ -274,7 +263,6 @@ function DraftRoom() {
           );
         })}
 
-      {/* Undo button */}
       {canUndo && lastPick && (
         <button
           onClick={() => setUndoConfirm(true)}
@@ -285,7 +273,6 @@ function DraftRoom() {
         </button>
       )}
 
-      {/* Confirm pick sheet */}
       {confirm && (
         <ConfirmSheet
           title={`Draft ${confirm.team.flag_emoji} ${confirm.team.name}?`}
@@ -296,7 +283,6 @@ function DraftRoom() {
         />
       )}
 
-      {/* Confirm undo sheet */}
       {undoConfirm && lastPick && (
         <ConfirmSheet
           title="Undo last pick?"

@@ -29,7 +29,6 @@ export default function QuizPage() {
   const [locking, setLocking] = useState(false);
   const [lockSuccess, setLockSuccess] = useState(false);
 
-  // Playing state
   const [currentQ, setCurrentQ] = useState(0);
   const [score, setScore] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
@@ -64,7 +63,6 @@ export default function QuizPage() {
     return () => { supabase.removeChannel(ch); };
   }, [fetchData]);
 
-  // Timer logic
   useEffect(() => {
     if (quizState !== 'playing' || answered) return;
     setTimeLeft(QUESTION_TIME_SECS);
@@ -117,7 +115,6 @@ export default function QuizPage() {
     setAnswered(false);
 
     if (currentQ + 1 >= TOTAL_QUESTIONS) {
-      // Quiz complete — save results
       finishQuiz(newScore, newCorrect);
     } else {
       setCurrentQ(prev => prev + 1);
@@ -126,15 +123,25 @@ export default function QuizPage() {
 
   async function finishQuiz(finalScore: number, finalCorrect: number) {
     if (!session) return;
-    await supabase.from('quiz_results').upsert(
-      { user_id: session.id, score: finalScore, correct_count: finalCorrect, completed_at: new Date().toISOString() },
-      { onConflict: 'user_id' }
-    );
+    let saved = false;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { error } = await supabase.from('quiz_results').upsert(
+        { user_id: session.id, score: finalScore, correct_count: finalCorrect, completed_at: new Date().toISOString() },
+        { onConflict: 'user_id' }
+      );
+      if (!error) { saved = true; break; }
+      await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+    }
+    if (!saved) {
+      localStorage.setItem(`quiz_backup_${session.id}`, JSON.stringify({ score: finalScore, correct_count: finalCorrect }));
+      alert(`Your score (${finalScore} pts) couldn't be saved due to a network issue. Screenshot this and tell Jakob: score=${finalScore}, correct=${finalCorrect}`);
+    }
     await fetchData();
     setQuizState('done');
   }
 
   function startQuiz() {
+    if (myResult) return;
     setCurrentQ(0);
     setScore(0);
     setCorrectCount(0);
@@ -165,7 +172,6 @@ export default function QuizPage() {
   const sortedResults = [...results].sort((a, b) => b.score - a.score);
   const myRank = myResult ? sortedResults.findIndex(r => r.user_id === myResult.user_id) + 1 : null;
 
-  // ---- PLAYING ----
   if (quizState === 'playing') {
     const q = QUIZ_QUESTIONS[currentQ];
     const timerPct = (timeLeft / QUESTION_TIME_SECS) * 100;
@@ -173,7 +179,6 @@ export default function QuizPage() {
 
     return (
       <div className="fixed inset-0 bg-bg-base z-50 flex flex-col p-4 overflow-hidden">
-        {/* Progress */}
         <div className="flex items-center gap-3 mb-4">
           <span className="text-white/40 text-xs font-mono">Q{currentQ + 1}/{TOTAL_QUESTIONS}</span>
           <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -182,7 +187,6 @@ export default function QuizPage() {
           <span className="text-white/40 text-xs font-mono">{score} pts</span>
         </div>
 
-        {/* Timer bar */}
         <div className="h-1 bg-white/10 rounded-full overflow-hidden mb-6">
           <div
             className="h-full rounded-full transition-all duration-1000"
@@ -190,22 +194,18 @@ export default function QuizPage() {
           />
         </div>
 
-        {/* Category */}
         <div className="mb-3">
           <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${q.category === 'cpfc' ? 'bg-palace-red/20 text-palace-red' : 'bg-gold/20 text-gold'}`}>
             {q.category === 'cpfc' ? '🦅 CPFC Trivia' : '⚽ World Cup'}
           </span>
         </div>
 
-        {/* Question */}
         <h2 className="text-xl font-bold text-white leading-snug mb-6 flex-shrink-0">{q.question}</h2>
 
-        {/* Timer countdown */}
         <div className="text-center mb-4">
           <span className={`text-3xl font-extrabold tabular-nums ${timeLeft <= 5 ? 'text-palace-red' : 'text-white/30'}`}>{timeLeft}</span>
         </div>
 
-        {/* Options */}
         <div className="grid grid-cols-1 gap-3">
           {q.options.map((opt, idx) => {
             const isSelected = selectedIndex === idx;
@@ -236,7 +236,6 @@ export default function QuizPage() {
           })}
         </div>
 
-        {/* Feedback overlay */}
         {feedback && (
           <div className="absolute top-24 left-1/2 -translate-x-1/2 pointer-events-none">
             <span className={`text-2xl font-extrabold px-4 py-2 rounded-xl animate-fade-in ${feedback.startsWith('+') ? 'text-neon' : 'text-palace-red'}`}>
@@ -248,7 +247,6 @@ export default function QuizPage() {
     );
   }
 
-  // ---- DONE ----
   if (quizState === 'done') {
     return (
       <div className="page-fade space-y-5 pb-4 pt-2">
@@ -279,10 +277,8 @@ export default function QuizPage() {
     );
   }
 
-  // ---- LOBBY ----
   return (
     <div className="page-fade space-y-5 pb-4">
-      {/* Hero */}
       <div className="-mx-4 px-6 py-8" style={{ background: 'linear-gradient(160deg, #1a0000 0%, #3d0a10 40%, #C4122E 80%, #8B0D20 100%)' }}>
         <div className="flex items-start justify-between">
           <div>
@@ -301,7 +297,6 @@ export default function QuizPage() {
         </div>
       </div>
 
-      {/* Player status cards */}
       <div className="space-y-2">
         <h2 className="font-display font-bold text-xl text-white tracking-wider uppercase">Scores</h2>
         {loading ? (
@@ -346,11 +341,13 @@ export default function QuizPage() {
         )}
       </div>
 
-      {/* CTA */}
-      {session && !myResult && (
+      {session && !myResult && !loading && (
         <button onClick={startQuiz} className="w-full btn-primary py-4 text-base font-extrabold">
           Enter the Gauntlet 🔥
         </button>
+      )}
+      {session && !myResult && loading && (
+        <div className="w-full h-14 bg-bg-card rounded-xl animate-pulse" />
       )}
 
       {session && myResult && !allDone && (
@@ -375,7 +372,6 @@ export default function QuizPage() {
         </div>
       )}
 
-      {/* All done — lock order */}
       {allDone && (
         <div className="card space-y-3">
           <h3 className="font-bold text-white text-center">All players have completed The Gauntlet!</h3>
@@ -406,7 +402,6 @@ export default function QuizPage() {
         </div>
       )}
 
-      {/* How scoring works */}
       <div className="card space-y-2">
         <h3 className="text-sm font-bold text-white/60">How scoring works</h3>
         <div className="text-xs text-white/40 space-y-1">

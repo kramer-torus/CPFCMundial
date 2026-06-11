@@ -5,7 +5,6 @@ export default function HowItWorksPage() {
     <div className="page-fade space-y-5 pb-6">
       <h1 className="text-2xl font-extrabold text-white">How It Works ❓</h1>
 
-      {/* The Game */}
       <section className="card space-y-2">
         <h2 className="text-palace-red font-bold text-lg">The Game</h2>
         <p className="text-white/70 text-sm leading-relaxed">
@@ -13,19 +12,18 @@ export default function HowItWorksPage() {
         </p>
       </section>
 
-      {/* The Draft */}
       <section className="card space-y-3">
         <h2 className="text-palace-red font-bold text-lg">The Draft</h2>
         <ul className="space-y-2 text-sm text-white/70">
-          <li className="flex gap-2"><span className="flex-shrink-0">👥</span>6 players: Kev, Franks, Kangars, Jakob, Matty Eagles and Liam</li>
+          <li className="flex gap-2"><span className="flex-shrink-0">👥</span>6 players: Kev, Franks, Kangars, Jakob, Matty Eagles and Bananaman</li>
           <li className="flex gap-2"><span className="flex-shrink-0">🌍</span>48 qualified teams split into 4 tiers of 12 by FIFA ranking: Elite (#1–12), Contenders (#13–24), Dark Horses (#25–36), Wildcards (#37+)</li>
           <li className="flex gap-2"><span className="flex-shrink-0">⚽</span>Each player drafts 8 teams total — exactly 2 from each tier. Everyone gets a mix of stars and underdogs.</li>
           <li className="flex gap-2"><span className="flex-shrink-0">🐍</span>
             <div>
               Picks follow a <strong className="text-white">snake order</strong> that reverses each round to keep it fair:
               <div className="mt-1.5 bg-white/5 rounded-lg p-2.5 font-mono text-xs space-y-0.5">
-                <div>Round 1: <span className="text-palace-red">Kev</span> → <span className="text-blue-400">Franks</span> → <span className="text-gold">Kangars</span> → <span className="text-emerald-400">Jakob</span> → <span className="text-orange-400">Matty</span> → <span className="text-purple-400">Liam</span></div>
-                <div>Round 2: <span className="text-purple-400">Liam</span> → <span className="text-orange-400">Matty</span> → <span className="text-emerald-400">Jakob</span> → <span className="text-gold">Kangars</span> → <span className="text-blue-400">Franks</span> → <span className="text-palace-red">Kev</span></div>
+                <div>Round 1: <span className="text-palace-red">Kev</span> → <span className="text-blue-400">Franks</span> → <span className="text-gold">Kangars</span> → <span className="text-emerald-400">Jakob</span> → <span className="text-orange-400">Matty</span> → <span className="text-purple-400">Bananaman</span></div>
+                <div>Round 2: <span className="text-purple-400">Bananaman</span> → <span className="text-orange-400">Matty</span> → <span className="text-emerald-400">Jakob</span> → <span className="text-gold">Kangars</span> → <span className="text-blue-400">Franks</span> → <span className="text-palace-red">Kev</span></div>
                 <div>Round 3: <span className="text-palace-red">Kev</span> → <span className="text-blue-400">Franks</span> … (repeats for each tier)</div>
               </div>
               Repeat through all 4 tiers until all 48 teams are drafted (48 picks total).
@@ -36,7 +34,6 @@ export default function HowItWorksPage() {
         </ul>
       </section>
 
-      {/* Tiers */}
       <section className="card space-y-3">
         <h2 className="text-palace-red font-bold text-lg">Tiers</h2>
         <div className="space-y-2 text-sm">
@@ -59,7 +56,6 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      {/* Scoring */}
       <section className="card space-y-3">
         <h2 className="text-palace-red font-bold text-lg">Scoring</h2>
         <p className="text-white/50 text-xs">Points awarded per team per match. Your score = combined total across all 8 of your teams.</p>
@@ -107,7 +103,6 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      {/* Tiebreakers */}
       <section className="card space-y-2">
         <h2 className="text-palace-red font-bold text-lg">Tiebreakers</h2>
         <ol className="text-sm text-white/70 space-y-1.5 list-decimal list-inside">
@@ -117,14 +112,12 @@ export default function HowItWorksPage() {
         </ol>
       </section>
 
-      {/* Tip */}
       <section className="card bg-palace-red/10 border-palace-red/20">
         <p className="text-sm text-white/80 leading-relaxed">
           <span className="text-gold font-bold">💡 Tip:</span> Tier 1 teams score reliably, but a Wildcard that goes on a deep run earns the same points per win. Landing two strong T1 picks in the snake can swing the whole competition.
         </p>
       </section>
 
-      {/* Tournament dates */}
       <section className="card space-y-3">
         <h2 className="text-palace-red font-bold text-lg">2026 Schedule</h2>
         <div className="space-y-1.5 text-sm">
