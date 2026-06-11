@@ -2,10 +2,9 @@ name: Sync Live Scores
 
 on:
   schedule:
-    # Every 5 minutes during the 2026 World Cup (Jun 11 – Jul 19 2026)
-    - cron: '*/5 * 11-30 6 *'   # June 11–30
-    - cron: '*/5 * 1-19 7 *'    # July 1–19
-  workflow_dispatch: # manual trigger from GitHub Actions UI
+    - cron: '*/5 * 11-30 6 *'
+    - cron: '*/5 * 1-19 7 *'
+  workflow_dispatch:
 
 jobs:
   sync:

@@ -2,10 +2,5 @@
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
-  "crons": [
-    {
-      "path": "/api/sync-scores",
-      "schedule": "*/5 * * * *"
-    }
-  ]
+  "crons": [{"path": "/api/sync-scores", "schedule": "*/5 * * * *"}]
 }

@@ -1,49 +1,24 @@
 export interface GameUser {
-  id: string;
-  display_name: string;
-  pin_hash: string;
-  is_admin: boolean;
-  accent_colour: string;
-  draft_position?: number | null;
-  phone_number?: string | null;
+  id: string; display_name: string; pin_hash: string; is_admin: boolean;
+  accent_colour: string; draft_position?: number | null; phone_number?: string | null;
 }
 
 export interface Team {
-  id: string;
-  name: string;
-  tier: 1 | 2 | 3 | 4;
-  flag_emoji: string;
-  confederation: string;
-  fifa_group: string;       // "A" through "L"
-  fifa_ranking: number;
-  is_debut: boolean;        // Curacao, Uzbekistan, Jordan, Cape Verde
+  id: string; name: string; tier: 1 | 2 | 3 | 4; flag_emoji: string;
+  confederation: string; fifa_group: string; fifa_ranking: number; is_debut: boolean;
 }
 
 export interface DraftPick {
-  id: string;
-  user_id: string;
-  team_id: string;
-  pick_number: number;
-  tier: number;
-  picked_at: string;
-  user?: GameUser;
-  team?: Team;
+  id: string; user_id: string; team_id: string; pick_number: number;
+  tier: number; picked_at: string; user?: GameUser; team?: Team;
 }
 
 export interface TeamPoints {
-  id: string;
-  team_id: string;
-  round: Round;
-  points: number;
-  updated_at: string;
+  id: string; team_id: string; round: Round; points: number; updated_at: string;
 }
 
 export interface AuditLog {
-  id: string;
-  user_id: string;
-  action: string;
-  detail: string;
-  created_at: string;
+  id: string; user_id: string; action: string; detail: string; created_at: string;
 }
 
 export type Round = 'GW1' | 'GW2' | 'GW3' | 'R32' | 'R16' | 'QF' | 'SF' | '3PO' | 'FINAL';
@@ -51,10 +26,8 @@ export const ROUNDS: Round[] = ['GW1', 'GW2', 'GW3', 'R32', 'R16', 'QF', 'SF', '
 export const KNOCKOUT_ROUNDS: Round[] = ['R32', 'R16', 'QF', 'SF', '3PO', 'FINAL'];
 export const ROUND_LABELS: Record<Round, string> = {
   GW1: 'Group W1', GW2: 'Group W2', GW3: 'Group W3',
-  R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarters',
-  SF: 'Semis', '3PO': '3rd Place', FINAL: 'Final',
+  R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarters', SF: 'Semis', '3PO': '3rd Place', FINAL: 'Final',
 };
-
 export const STAGE_ORDER: Round[] = ['GW1','GW2','GW3','R32','R16','QF','SF','3PO','FINAL'];
 
 export const TIER_COLORS: Record<number, { bg: string; text: string; border: string; label: string }> = {
@@ -65,24 +38,13 @@ export const TIER_COLORS: Record<number, { bg: string; text: string; border: str
 };
 
 export const PLAYER_COLORS = [
-  '#C4122E', // Kev - Palace Red
-  '#3B82F6', // Franks - Blue
-  '#C9A84C', // Kangars - Gold
-  '#10B981', // Jakob - Emerald
-  '#F97316', // Matty Eagles - Orange
-  '#A855F7', // Bananaman - Purple
+  '#C4122E', '#3B82F6', '#C9A84C', '#10B981', '#F97316', '#A855F7',
 ];
 
 export interface Session {
-  id: string;
-  display_name: string;
-  is_admin: boolean;
-  accent_colour: string;
+  id: string; display_name: string; is_admin: boolean; accent_colour: string;
 }
 
 export interface PlayerLeaderboard extends GameUser {
-  total_points: number;
-  teams_alive: number;
-  best_stage: string;
-  points_delta: number;
+  total_points: number; teams_alive: number; best_stage: string; points_delta: number;
 }

@@ -1,18 +1,7 @@
-// Isolated fixture fetch — routes through our server-side proxy at /api/fixtures
-// This avoids exposing FOOTBALL_DATA_API_KEY on the client.
-
 export interface Fixture {
-  id: number;
-  homeTeam: string;
-  awayTeam: string;
-  homeFlag: string;
-  awayFlag: string;
-  kickoff: string; // ISO date string
-  status: 'SCHEDULED' | 'LIVE' | 'FINISHED' | 'POSTPONED';
-  homeScore: number | null;
-  awayScore: number | null;
-  stage: string;
-  group?: string;
+  id: number; homeTeam: string; awayTeam: string; homeFlag: string; awayFlag: string;
+  kickoff: string; status: 'SCHEDULED' | 'LIVE' | 'FINISHED' | 'POSTPONED';
+  homeScore: number | null; awayScore: number | null; stage: string; group?: string;
 }
 
 export async function fetchWorldCupFixtures(): Promise<{ fixtures: Fixture[]; error: string | null }> {
@@ -23,22 +12,11 @@ export async function fetchWorldCupFixtures(): Promise<{ fixtures: Fixture[]; er
       return { fixtures: [], error: data.error ?? 'API_ERROR' };
     }
     const data = await res.json();
-    if (data.error) {
-      return { fixtures: [], error: data.error };
-    }
-    // Map FixtureMatch (from /api/fixtures) to legacy Fixture shape
+    if (data.error) return { fixtures: [], error: data.error };
     const fixtures: Fixture[] = (data.matches ?? []).map((m: any) => ({
-      id: m.id,
-      homeTeam: m.homeTeam,
-      awayTeam: m.awayTeam,
-      homeFlag: '',
-      awayFlag: '',
-      kickoff: m.utcDate,
-      status: m.status,
-      homeScore: m.homeScore,
-      awayScore: m.awayScore,
-      stage: m.stage,
-      group: m.group ?? undefined,
+      id: m.id, homeTeam: m.homeTeam, awayTeam: m.awayTeam, homeFlag: '', awayFlag: '',
+      kickoff: m.utcDate, status: m.status, homeScore: m.homeScore, awayScore: m.awayScore,
+      stage: m.stage, group: m.group ?? undefined,
     }));
     return { fixtures, error: null };
   } catch {

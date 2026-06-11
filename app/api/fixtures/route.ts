@@ -43,27 +43,19 @@ export async function GET() {
       next: { revalidate: 60 },
     });
   } catch (err) {
-    return NextResponse.json(
-      { matches: [], error: 'FETCH_ERROR', detail: String(err) },
-      { status: 502 }
-    );
+    return NextResponse.json({ matches: [], error: 'FETCH_ERROR', detail: String(err) }, { status: 502 });
   }
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    return NextResponse.json(
-      { matches: [], error: `FD_${res.status}`, detail: text },
-      { status: 502 }
-    );
+    return NextResponse.json({ matches: [], error: `FD_${res.status}`, detail: text }, { status: 502 });
   }
 
   const data = await res.json();
 
   const matches: FixtureMatch[] = (data.matches ?? []).map((m: any) => {
     const rawGroup: string | null = m.group ?? null;
-    // Strip "GROUP_" prefix → "A", "B", etc.
     const group = rawGroup ? rawGroup.replace(/^GROUP_/, '') : null;
-
     return {
       id: m.id,
       status: m.status,
