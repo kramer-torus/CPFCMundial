@@ -43,7 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
         <BottomNav />
-        <div className="text-center text-white/15 text-[10px] pb-1">v5.0</div>
+        <div className="text-center text-white/15 text-[10px] pb-1">v5.1</div>
       </body>
     </html>
   );

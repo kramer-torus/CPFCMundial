@@ -13,7 +13,7 @@ const PLAYERS = [
   { name: 'Kangars',      colour: '#C9A84C' },
   { name: 'Jakob',        colour: '#10B981' },
   { name: 'Matty Eagles', colour: '#F97316' },
-  { name: 'Liam',         colour: '#A855F7' },
+  { name: 'Bananaman',    colour: '#A855F7' },
 ];
 
 function initials(name: string) {
@@ -64,7 +64,6 @@ export default function LoginPage() {
           ← Back
         </button>
 
-        {/* Avatar */}
         <div
           className="w-24 h-24 rounded-2xl flex items-center justify-center mb-5 shadow-2xl"
           style={{ backgroundColor: selected.colour }}
@@ -108,7 +107,6 @@ export default function LoginPage() {
 
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden" style={{ background: 'radial-gradient(ellipse at 50% 0%, #3d0a14 0%, #0F1923 60%)' }}>
-      {/* Header */}
       <div className="flex flex-col items-center pt-12 pb-6 px-6 flex-shrink-0">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-10 h-10 bg-palace-red rounded-xl flex items-center justify-center shadow-lg shadow-palace-red/30">
@@ -123,7 +121,6 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Player grid */}
       <div className="flex-1 overflow-y-auto px-5 pb-8">
         <p className="text-center text-white/30 text-xs font-bold uppercase tracking-[0.3em] mb-4">Who are you?</p>
         <div className="grid grid-cols-2 gap-3">
@@ -134,17 +131,13 @@ export default function LoginPage() {
               className="relative overflow-hidden rounded-2xl p-4 flex flex-col items-center gap-3 active:scale-95 transition-all group"
               style={{ background: `linear-gradient(135deg, ${p.colour}22 0%, ${p.colour}08 100%)`, borderWidth: 1, borderColor: `${p.colour}40` }}
             >
-              {/* Top accent bar */}
               <div className="absolute top-0 left-0 right-0 h-0.5" style={{ backgroundColor: p.colour }} />
-
-              {/* Avatar */}
               <div
                 className="w-14 h-14 rounded-xl flex items-center justify-center shadow-lg font-display font-bold text-2xl text-white"
                 style={{ backgroundColor: p.colour }}
               >
                 {initials(p.name)}
               </div>
-
               <span className="font-bold text-white text-base leading-tight text-center">{p.name}</span>
               <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: p.colour }}>Enter PIN →</span>
             </button>

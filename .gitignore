@@ -47,3 +47,4 @@ public/swe-worker-*.js
 public/swe-worker-*.js.map
 public/fallback-*.js
 public/fallback-*.js.map
+.claude/

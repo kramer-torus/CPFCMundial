@@ -70,7 +70,7 @@ export const PLAYER_COLORS = [
   '#C9A84C', // Kangars - Gold
   '#10B981', // Jakob - Emerald
   '#F97316', // Matty Eagles - Orange
-  '#A855F7', // Liam - Purple
+  '#A855F7', // Bananaman - Purple
 ];
 
 export interface Session {

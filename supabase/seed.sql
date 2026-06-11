@@ -1,5 +1,5 @@
 -- Default PINs: Kev=1234, Franks=2222, Kangars=3333, Jakob=2026 (admin),
---               Matty Eagles=5555, Liam=7777
+--               Matty Eagles=5555, Bananaman=7777
 -- To change: UPDATE users SET pin_hash = encode(sha256('PIN'::bytea), 'hex') WHERE display_name = 'Name';
 insert into users (display_name, pin_hash, is_admin, accent_colour) values
   ('Kev',          '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4', false, '#C4122E'),
@@ -7,7 +7,7 @@ insert into users (display_name, pin_hash, is_admin, accent_colour) values
   ('Kangars',      '318aee3fed8c9d040d35a7fc1fa776fb31303833aa2de885354ddf3d44d8fb69', false, '#C9A84C'),
   ('Jakob',        '158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab', true,  '#10B981'),
   ('Matty Eagles', 'c1f330d0aff31c1c87403f1e4347bcc21aff7c179908723535f2b31723702525', false, '#F97316'),
-  ('Liam',         '41c991eb6a66242c0454191244278183ce58cf4a6bcd372f799e4b9cc01886af', false, '#A855F7')
+  ('Bananaman',         '41c991eb6a66242c0454191244278183ce58cf4a6bcd372f799e4b9cc01886af', false, '#A855F7')
 on conflict (display_name) do nothing;
 
 -- 48 confirmed 2026 WC teams — 4 tiers of 12 (2 picks/tier/player, 8 teams/player)
