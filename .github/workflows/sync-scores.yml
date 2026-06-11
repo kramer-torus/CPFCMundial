@@ -1,0 +1,23 @@
+name: Sync Live Scores
+
+on:
+  schedule:
+    # Every 5 minutes during the 2026 World Cup (Jun 11 – Jul 19 2026)
+    - cron: '*/5 * 11-30 6 *'   # June 11–30
+    - cron: '*/5 * 1-19 7 *'    # July 1–19
+  workflow_dispatch: # manual trigger from GitHub Actions UI
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Trigger score sync
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://cpfc-mundial.vercel.app/api/sync-scores")
+          echo "Response status: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "Sync returned non-200 status: $STATUS"
+            exit 1
+          fi

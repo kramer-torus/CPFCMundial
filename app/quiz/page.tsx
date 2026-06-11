@@ -126,15 +126,28 @@ export default function QuizPage() {
 
   async function finishQuiz(finalScore: number, finalCorrect: number) {
     if (!session) return;
-    await supabase.from('quiz_results').upsert(
-      { user_id: session.id, score: finalScore, correct_count: finalCorrect, completed_at: new Date().toISOString() },
-      { onConflict: 'user_id' }
-    );
+    // Retry up to 3 times in case of transient network failure
+    let saved = false;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { error } = await supabase.from('quiz_results').upsert(
+        { user_id: session.id, score: finalScore, correct_count: finalCorrect, completed_at: new Date().toISOString() },
+        { onConflict: 'user_id' }
+      );
+      if (!error) { saved = true; break; }
+      await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+    }
+    if (!saved) {
+      // Store locally so player can't lose their score — show a warning
+      localStorage.setItem(`quiz_backup_${session.id}`, JSON.stringify({ score: finalScore, correct_count: finalCorrect }));
+      alert(`Your score (${finalScore} pts) couldn't be saved due to a network issue. Screenshot this and tell Jakob: score=${finalScore}, correct=${finalCorrect}`);
+    }
     await fetchData();
     setQuizState('done');
   }
 
   function startQuiz() {
+    // Block re-entry if result already exists in DB
+    if (myResult) return;
     setCurrentQ(0);
     setScore(0);
     setCorrectCount(0);
@@ -347,10 +360,13 @@ export default function QuizPage() {
       </div>
 
       {/* CTA */}
-      {session && !myResult && (
+      {session && !myResult && !loading && (
         <button onClick={startQuiz} className="w-full btn-primary py-4 text-base font-extrabold">
           Enter the Gauntlet 🔥
         </button>
+      )}
+      {session && !myResult && loading && (
+        <div className="w-full h-14 bg-bg-card rounded-xl animate-pulse" />
       )}
 
       {session && myResult && !allDone && (

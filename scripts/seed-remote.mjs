@@ -36,14 +36,14 @@ async function count(table) {
   console.log(`COUNT ${table}: ${r.headers.get('content-range')}`);
 }
 
-// 6 players — PINs: Kev=1234, Franks=2222, Kangars=3333, Jakob=2026, Matty Eagles=5555, Liam=7777
+// 6 players — PINs: Kev=1234, Franks=2222, Kangars=3333, Jakob=2026, Matty Eagles=5555, Bananaman=7777
 const USERS = [
   { display_name: 'Kev',          pin_hash: '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4', is_admin: false, accent_colour: '#C4122E' },
   { display_name: 'Franks',       pin_hash: 'edee29f882543b956620b26d0ee0e7e950399b1c4222f5de05e06425b4c995e9', is_admin: false, accent_colour: '#3B82F6' },
   { display_name: 'Kangars',      pin_hash: '318aee3fed8c9d040d35a7fc1fa776fb31303833aa2de885354ddf3d44d8fb69', is_admin: false, accent_colour: '#C9A84C' },
   { display_name: 'Jakob',        pin_hash: '158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab', is_admin: true,  accent_colour: '#10B981' },
   { display_name: 'Matty Eagles', pin_hash: 'c1f330d0aff31c1c87403f1e4347bcc21aff7c179908723535f2b31723702525', is_admin: false, accent_colour: '#F97316' },
-  { display_name: 'Liam',         pin_hash: '41c991eb6a66242c0454191244278183ce58cf4a6bcd372f799e4b9cc01886af', is_admin: false, accent_colour: '#A855F7' },
+  { display_name: 'Bananaman',         pin_hash: '41c991eb6a66242c0454191244278183ce58cf4a6bcd372f799e4b9cc01886af', is_admin: false, accent_colour: '#A855F7' },
 ];
 
 const T = (name, tier, flag_emoji, confederation, fifa_group, fifa_ranking, is_debut = false) =>

@@ -10,7 +10,7 @@ import ConfirmSheet from '@/components/ConfirmSheet';
 import { GameUser, Team, DraftPick, TIER_COLORS } from '@/lib/types';
 import { getPlayerIndexForPick, getTierForPickNumber, getSnakeDirection } from '@/lib/draft-utils';
 
-const PLAYER_ORDER = ['Kev', 'Franks', 'Kangars', 'Jakob', 'Matty Eagles', 'Liam'];
+const PLAYER_ORDER = ['Kev', 'Franks', 'Kangars', 'Jakob', 'Matty Eagles', 'Bananaman'];
 
 export default function DraftPage() {
   return <AuthGuard><DraftRoom /></AuthGuard>;

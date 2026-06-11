@@ -1,14 +1,14 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Trophy, ClipboardList, Globe, Flame, BarChart2 } from 'lucide-react';
+import { Trophy, ClipboardList, Calendar, Users, Flame } from 'lucide-react';
 
 const TABS = [
   { href: '/', label: 'Home', Icon: Trophy },
-  { href: '/draft', label: 'Draft', Icon: ClipboardList },
-  { href: '/teams', label: 'Teams', Icon: Globe },
+  { href: '/fixtures', label: 'Fixtures', Icon: Calendar },
+  { href: '/squads', label: 'Squads', Icon: Users },
   { href: '/quiz', label: 'Gauntlet', Icon: Flame },
-  { href: '/scores', label: 'Scores', Icon: BarChart2 },
+  { href: '/draft', label: 'Draft', Icon: ClipboardList },
 ];
 
 export default function BottomNav() {
