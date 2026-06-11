@@ -159,7 +159,9 @@ export default function QuizPage() {
 
   async function lockDraftOrder() {
     setLocking(true);
-    const sorted = [...results].sort((a, b) => b.score - a.score);
+    const sorted = [...results].sort((a, b) =>
+      b.score - a.score || new Date(a.completed_at).getTime() - new Date(b.completed_at).getTime()
+    );
     for (let i = 0; i < sorted.length; i++) {
       await supabase.from('users').update({ draft_position: i + 1 }).eq('id', sorted[i].user_id);
     }
@@ -175,7 +177,9 @@ export default function QuizPage() {
 
   const myResult = session ? results.find(r => r.user_id === session.id) : null;
   const allDone = users.length > 0 && results.length >= users.length;
-  const sortedResults = [...results].sort((a, b) => b.score - a.score);
+  const sortedResults = [...results].sort((a, b) =>
+    b.score - a.score || new Date(a.completed_at).getTime() - new Date(b.completed_at).getTime()
+  );
   const myRank = myResult ? sortedResults.findIndex(r => r.user_id === myResult.user_id) + 1 : null;
 
   // ---- PLAYING ----
