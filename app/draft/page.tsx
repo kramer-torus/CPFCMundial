@@ -65,6 +65,7 @@ function DraftRoom() {
 
   async function handlePick(team: Team) {
     if (!isMyTurn || saving) return;
+    if (team.tier !== currentTier) return;
     setSaving(true);
     const pickNum = totalPicks + 1;
     const { count } = await supabase.from('draft_picks').select('*', { count: 'exact', head: true });
@@ -91,6 +92,15 @@ function DraftRoom() {
   function toggleTier(t: number) { setOpenTiers(prev => { const next = new Set(prev); next.has(t) ? next.delete(t) : next.add(t); return next; }); }
   const tierTeams = [1,2,3,4].map(t => ({ tier: t, teams: teams.filter(team => team.tier === t) }));
 
+  // Auto-open and filter to the required tier whenever the pick number advances
+  useEffect(() => {
+    if (!isDraftComplete) {
+      setOpenTiers(prev => new Set([...prev, currentTier]));
+      if (isMyTurn) setTierFilter(currentTier);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPickNumber]);
+
   if (loading) return <div className="flex items-center justify-center min-h-60"><div className="w-8 h-8 border-2 border-palace-red border-t-transparent rounded-full animate-spin" /></div>;
 
   return (
@@ -99,8 +109,13 @@ function DraftRoom() {
         <div className="rounded-xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #1a0408 0%, #C4122E 50%, #8B0D20 100%)' }}>
           <div className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-white/50 uppercase tracking-widest">Pick {currentPickNumber} of 48 · Tier {currentTier}</span>
+              <span className="text-xs font-bold text-white/50 uppercase tracking-widest">Pick {currentPickNumber} of 48</span>
               <span className="text-xs text-white/40 font-mono">{direction === 'forward' ? '→' : '←'} snake</span>
+            </div>
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${TIER_COLORS[currentTier as 1|2|3|4]?.bg} ${TIER_COLORS[currentTier as 1|2|3|4]?.text}`}>
+                T{currentTier} · {TIER_COLORS[currentTier as 1|2|3|4]?.label} only
+              </span>
             </div>
             <div className="font-display font-bold text-4xl leading-none" style={{ color: isMyTurn ? '#C9A84C' : 'white' }}>
               {isMyTurn ? '⭐ YOUR TURN!' : `${(currentPlayer?.display_name || '?').toUpperCase()}'S TURN`}
@@ -125,15 +140,17 @@ function DraftRoom() {
           <div key={tier} className="card overflow-hidden p-0">
             <button onClick={()=>toggleTier(tier)} className="w-full flex items-center gap-3 p-3 hover:bg-white/5 transition-colors">
               <span className={`pill ${tc.bg} ${tc.text}`}>T{tier} · {tc.label}</span>
+              {isMyTurn && !isDraftComplete && tier !== currentTier && <Lock size={11} className="text-white/25 ml-1 flex-shrink-0" />}
               <span className="text-white/40 text-xs ml-auto">{draftedCount}/{tl.length}</span>
               {isOpen?<ChevronUp size={16} className="text-white/40" />:<ChevronDown size={16} className="text-white/40" />}
             </button>
             {isOpen&&<div className="grid grid-cols-2 gap-2 p-3 pt-0">
               {tl.map(team=>{
                 const pick=pickByTeamId.get(team.id); const drafter=pick?userById.get(pick.user_id):null; const isDrafted=!!pick; const isLastPick=lastPick?.team_id===team.id;
+                const isWrongTier = isMyTurn && !isDraftComplete && !isDrafted && team.tier !== currentTier;
                 return (
-                  <button key={team.id} onClick={()=>{if(isDrafted||!isMyTurn||saving)return;setConfirm({team});}} disabled={isDrafted||!isMyTurn}
-                    className={`relative flex flex-col items-center gap-1 p-3 rounded-xl border text-center transition-all ${isDrafted?'bg-white/3 border-white/5 opacity-50 cursor-default':isMyTurn?`border-white/20 hover:border-palace-red/60 hover:bg-white/5 active:scale-95 cursor-pointer ${tier===currentTier?'border-palace-red/30 bg-palace-red/5':''}` :'border-white/10 bg-white/3 cursor-default'}`}>
+                  <button key={team.id} onClick={()=>{if(isDrafted||!isMyTurn||saving||isWrongTier)return;setConfirm({team});}} disabled={isDrafted||!isMyTurn||isWrongTier}
+                    className={`relative flex flex-col items-center gap-1 p-3 rounded-xl border text-center transition-all ${isDrafted?'bg-white/3 border-white/5 opacity-50 cursor-default':isWrongTier?'bg-white/3 border-white/5 opacity-20 cursor-not-allowed':isMyTurn?'border-palace-red/30 bg-palace-red/5 hover:border-palace-red/60 hover:bg-white/5 active:scale-95 cursor-pointer':'border-white/10 bg-white/3 cursor-default'}`}>
                     <span className="text-3xl">{team.flag_emoji}</span>
                     <span className="text-white text-xs font-semibold leading-tight">{team.name}</span>
                     <span className="text-white/40 text-[10px]">#{team.fifa_ranking} · Grp {team.fifa_group}</span>
@@ -141,6 +158,7 @@ function DraftRoom() {
                     {isDrafted&&drafter&&<span className="text-xs font-semibold px-1.5 py-0.5 rounded-full" style={{color:drafter.accent_colour,backgroundColor:`${drafter.accent_colour}25`}}>{drafter.display_name}</span>}
                     {isLastPick&&<span className="absolute top-1 right-1"><RotateCcw size={10} className="text-white/30" /></span>}
                     {isDrafted&&!isLastPick&&<Lock size={10} className="absolute top-1 right-1 text-white/20" />}
+                    {isWrongTier&&<Lock size={10} className="absolute top-1 right-1 text-white/15" />}
                   </button>
                 );
               })}
