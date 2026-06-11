@@ -21,9 +21,6 @@ export interface AuditLog {
   id: string; user_id: string; action: string; detail: string; created_at: string;
 }
 
-export interface Bulletin {
-  id: string; title: string; body: string; stats_json: unknown; created_at: string;
-}
 
 export type Round = 'GW1' | 'GW2' | 'GW3' | 'R32' | 'R16' | 'QF' | 'SF' | '3PO' | 'FINAL';
 export const ROUNDS: Round[] = ['GW1', 'GW2', 'GW3', 'R32', 'R16', 'QF', 'SF', '3PO', 'FINAL'];

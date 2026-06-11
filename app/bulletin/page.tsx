@@ -25,11 +25,20 @@ function BulletinFeed() {
   const fetchData = useCallback(async () => {
     try {
       const { data } = await supabase
-        .from('bulletins')
-        .select('id, title, body, created_at')
+        .from('audit_log')
+        .select('id, detail, created_at')
+        .eq('action', 'DAILY_WRAP')
         .order('created_at', { ascending: false })
         .limit(30);
-      setBulletins(data || []);
+      const parsed: Bulletin[] = (data || []).flatMap(row => {
+        try {
+          const d = JSON.parse(row.detail) as { title: string; body: string };
+          return [{ id: row.id, title: d.title, body: d.body, created_at: row.created_at }];
+        } catch {
+          return [];
+        }
+      });
+      setBulletins(parsed);
     } catch {
       // network failure — show empty state
     } finally {
@@ -40,8 +49,8 @@ function BulletinFeed() {
   useEffect(() => {
     fetchData();
     const ch = supabase
-      .channel('bulletins-rt')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bulletins' }, fetchData)
+      .channel('wraps-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'audit_log' }, fetchData)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [fetchData]);
