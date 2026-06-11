@@ -1,0 +1,34 @@
+name: Generate CPFCMundial daily wrap
+
+# Fires daily at 09:00 UTC during the tournament window, plus on-demand.
+# Each run hits the deployed generation endpoint, which syncs scores, writes a
+# fresh banter-laden daily wrap to the DB, and optionally nudges the admin's WhatsApp.
+on:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger daily wrap generation
+        env:
+          BULLETIN_URL: ${{ secrets.BULLETIN_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$BULLETIN_URL" ]; then
+            echo "BULLETIN_URL secret not set; defaulting to production URL"
+            BULLETIN_URL="https://cpfc-mundial.vercel.app/api/bulletin/generate"
+          fi
+          echo "Requesting: $BULLETIN_URL"
+          code=$(curl -sS -o /tmp/resp.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "$BULLETIN_URL")
+          echo "HTTP $code"
+          cat /tmp/resp.json || true
+          # Don't fail the workflow on a 400 (e.g. draft not started) — only on 5xx/transport errors.
+          if [ "$code" -ge 500 ] || [ "$code" -eq 000 ]; then
+            echo "Generation failed with HTTP $code"
+            exit 1
+          fi
