@@ -95,7 +95,7 @@ function DraftRoom() {
   // Auto-open and filter to the required tier whenever the pick number advances
   useEffect(() => {
     if (!isDraftComplete) {
-      setOpenTiers(prev => new Set([...prev, currentTier]));
+      setOpenTiers(prev => { const next = new Set(prev); next.add(currentTier); return next; });
       if (isMyTurn) setTierFilter(currentTier);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -147,7 +147,7 @@ function DraftRoom() {
             {isOpen&&<div className="grid grid-cols-2 gap-2 p-3 pt-0">
               {tl.map(team=>{
                 const pick=pickByTeamId.get(team.id); const drafter=pick?userById.get(pick.user_id):null; const isDrafted=!!pick; const isLastPick=lastPick?.team_id===team.id;
-                const isWrongTier = isMyTurn && !isDraftComplete && !isDrafted && team.tier !== currentTier;
+                const isWrongTier = !!(isMyTurn && !isDraftComplete && !isDrafted && team.tier !== currentTier);
                 return (
                   <button key={team.id} onClick={()=>{if(isDrafted||!isMyTurn||saving||isWrongTier)return;setConfirm({team});}} disabled={isDrafted||!isMyTurn||isWrongTier}
                     className={`relative flex flex-col items-center gap-1 p-3 rounded-xl border text-center transition-all ${isDrafted?'bg-white/3 border-white/5 opacity-50 cursor-default':isWrongTier?'bg-white/3 border-white/5 opacity-20 cursor-not-allowed':isMyTurn?'border-palace-red/30 bg-palace-red/5 hover:border-palace-red/60 hover:bg-white/5 active:scale-95 cursor-pointer':'border-white/10 bg-white/3 cursor-default'}`}>
