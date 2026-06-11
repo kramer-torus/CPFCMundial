@@ -16,8 +16,8 @@ export default function HowItWorksPage() {
           <li className="flex gap-2"><span className="flex-shrink-0">⚽</span>Each player drafts 8 teams — exactly 2 from each tier.</li>
           <li className="flex gap-2"><span className="flex-shrink-0">🐍</span>
             <div>Snake order reverses each round:<div className="mt-1.5 bg-white/5 rounded-lg p-2.5 font-mono text-xs space-y-0.5">
-              <div>Round 1: <span className="text-palace-red">Kev</span> → <span className="text-blue-400">Franks</span> → <span className="text-gold">Kangars</span> → <span className="text-emerald-400">Jakob</span> → <span className="text-orange-400">Matty</span> → <span className="text-purple-400">Bananaman</span></div>
-              <div>Round 2: <span className="text-purple-400">Bananaman</span> → <span className="text-orange-400">Matty</span> → <span className="text-emerald-400">Jakob</span> → <span className="text-gold">Kangars</span> → <span className="text-blue-400">Franks</span> → <span className="text-palace-red">Kev</span></div>
+              <div>Odd rounds: <span className="text-gold">Kangars</span> → <span className="text-purple-400">Bananaman</span> → <span className="text-palace-red">Kev</span> → <span className="text-blue-400">Franks</span> → <span className="text-emerald-400">Jakob</span> → <span className="text-orange-400">Matty</span></div>
+              <div>Even rounds: <span className="text-orange-400">Matty</span> → <span className="text-emerald-400">Jakob</span> → <span className="text-blue-400">Franks</span> → <span className="text-palace-red">Kev</span> → <span className="text-purple-400">Bananaman</span> → <span className="text-gold">Kangars</span></div>
             </div></div>
           </li>
         </ul>

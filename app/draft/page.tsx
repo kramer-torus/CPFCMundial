@@ -10,7 +10,7 @@ import ConfirmSheet from '@/components/ConfirmSheet';
 import { GameUser, Team, DraftPick, TIER_COLORS } from '@/lib/types';
 import { getPlayerIndexForPick, getTierForPickNumber, getSnakeDirection } from '@/lib/draft-utils';
 
-const PLAYER_ORDER = ['Kev', 'Franks', 'Kangars', 'Jakob', 'Matty Eagles', 'Bananaman'];
+const PLAYER_ORDER = ['Kangars', 'Bananaman', 'Kev', 'Franks', 'Jakob', 'Matty Eagles'];
 
 export default function DraftPage() {
   return <AuthGuard><DraftRoom /></AuthGuard>;
@@ -69,7 +69,8 @@ function DraftRoom() {
     const pickNum = totalPicks + 1;
     const { count } = await supabase.from('draft_picks').select('*', { count: 'exact', head: true });
     if ((count ?? 0) !== totalPicks) { setSaving(false); await fetchData(); return; }
-    await supabase.from('draft_picks').insert({ user_id: session!.id, team_id: team.id, pick_number: pickNum, tier: currentTier });
+    const { error: pickErr } = await supabase.from('draft_picks').insert({ user_id: session!.id, team_id: team.id, pick_number: pickNum, tier: currentTier });
+    if (pickErr) { setSaving(false); alert(`Pick failed — try again (${pickErr.message})`); return; }
     setSaving(false); setConfirm(null); fetchData();
     if (pickNum < 48) {
       const nextPlayerIdx = getPlayerIndexForPick(pickNum + 1);
