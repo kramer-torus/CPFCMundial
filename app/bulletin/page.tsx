@@ -2,9 +2,10 @@
 export const dynamic = 'force-dynamic';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Share2, Check, Copy, Newspaper } from 'lucide-react';
+import { Share2, Check, Copy, Newspaper, TrendingUp } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import AuthGuard from '@/components/AuthGuard';
+import { GameUser, DraftPick, TeamPoints, KNOCKOUT_ROUNDS } from '@/lib/types';
 
 interface Bulletin {
   id: string;
@@ -13,8 +14,120 @@ interface Bulletin {
   created_at: string;
 }
 
+interface OddsRow {
+  user_id: string;
+  display_name: string;
+  accent_colour: string;
+  points: number;
+  teams_alive: number;
+  odds: string;
+}
+
+function calcOdds(users: GameUser[], picks: DraftPick[], points: TeamPoints[]): OddsRow[] {
+  const eliminatedIds = new Set(
+    points.filter(tp => KNOCKOUT_ROUNDS.includes(tp.round) && tp.points === 0).map(tp => tp.team_id),
+  );
+  const rows = users.map(u => {
+    const myTeamIds = picks.filter(p => p.user_id === u.id).map(p => p.team_id);
+    const totalPoints = points.filter(tp => myTeamIds.includes(tp.team_id)).reduce((s, tp) => s + tp.points, 0);
+    const teamsAlive = myTeamIds.filter(id => !eliminatedIds.has(id)).length;
+    const strength = totalPoints + teamsAlive * 5;
+    return { user_id: u.id, display_name: u.display_name, accent_colour: u.accent_colour, points: totalPoints, teams_alive: teamsAlive, strength };
+  });
+  const total = rows.reduce((s, r) => s + r.strength, 0);
+  return rows
+    .map(r => ({
+      user_id: r.user_id,
+      display_name: r.display_name,
+      accent_colour: r.accent_colour,
+      points: r.points,
+      teams_alive: r.teams_alive,
+      odds: total === 0 || r.strength === 0 ? '—' : (total / r.strength).toFixed(1),
+    }))
+    .sort((a, b) => parseFloat(a.odds) || 999 - (parseFloat(b.odds) || 999));
+}
+
 export default function BulletinPage() {
   return <AuthGuard><BulletinFeed /></AuthGuard>;
+}
+
+function OddsTracker() {
+  const [rows, setRows] = useState<OddsRow[]>([]);
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+
+  const fetchOdds = useCallback(async () => {
+    const [usersRes, picksRes, pointsRes] = await Promise.all([
+      supabase.from('users').select('*'),
+      supabase.from('draft_picks').select('*'),
+      supabase.from('team_points').select('*'),
+    ]);
+    const users: GameUser[] = usersRes.data || [];
+    const picks: DraftPick[] = picksRes.data || [];
+    const points: TeamPoints[] = pointsRes.data || [];
+    if (users.length && picks.length) {
+      setRows(calcOdds(users, picks, points));
+      setUpdatedAt(new Date());
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchOdds();
+    const ch = supabase.channel('odds-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'team_points' }, fetchOdds)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [fetchOdds]);
+
+  if (!rows.length) return null;
+
+  const favourite = rows[0];
+
+  return (
+    <div className="card space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <TrendingUp size={16} className="text-gold" />
+          <span className="text-gold font-bold text-sm uppercase tracking-wider">Live Odds</span>
+        </div>
+        {updatedAt && (
+          <span className="text-white/25 text-[10px] tabular-nums">
+            updated {updatedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        )}
+      </div>
+      <div className="space-y-1.5">
+        {rows.map((r, i) => {
+          const isFav = i === 0 && r.odds !== '—';
+          const oddsNum = parseFloat(r.odds);
+          return (
+            <div
+              key={r.user_id}
+              className="flex items-center gap-2 rounded-lg px-2.5 py-1.5"
+              style={{ background: isFav ? `${r.accent_colour}18` : 'transparent', borderWidth: isFav ? 1 : 0, borderColor: `${r.accent_colour}30` }}
+            >
+              <div className="w-4 flex-shrink-0 text-center text-white/25 text-xs font-bold">{i + 1}</div>
+              <div className="flex-1 min-w-0">
+                <span className="text-white text-sm font-semibold truncate">{r.display_name}</span>
+                <span className="text-white/30 text-xs ml-2 tabular-nums">{r.points}pts · {r.teams_alive} alive</span>
+              </div>
+              <div className="flex-shrink-0 text-right">
+                <span
+                  className="font-display font-bold text-lg tabular-nums leading-none"
+                  style={{ color: isFav ? r.accent_colour : oddsNum > 5 ? '#ffffff40' : '#ffffff80' }}
+                >
+                  {r.odds}
+                </span>
+                {r.odds !== '—' && <span className="text-white/25 text-[10px] ml-0.5">x</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p className="text-white/20 text-[10px]">
+        Decimal odds to win — {favourite.display_name} is the {parseFloat(favourite.odds) < 2 ? 'heavy ' : ''}favourite at {favourite.odds}x. Recalculates live as teams are eliminated.
+      </p>
+    </div>
+  );
 }
 
 function BulletinFeed() {
@@ -56,12 +169,10 @@ function BulletinFeed() {
   }, [fetchData]);
 
   async function share(b: Bulletin) {
-    // Native share sheet → pick the WhatsApp group directly (best path on mobile).
     if (navigator.share) {
       await navigator.share({ text: b.body }).catch(() => {});
       return;
     }
-    // Desktop fallback — copy to clipboard.
     await navigator.clipboard.writeText(b.body).catch(() => {});
     setCopiedId(b.id);
     setTimeout(() => setCopiedId(null), 2000);
@@ -84,6 +195,8 @@ function BulletinFeed() {
         <h1 className="text-2xl font-extrabold text-white">Daily Wrap 📋</h1>
       </div>
       <p className="text-white/50 text-sm -mt-2">Your daily round-up — standings, movers and banter, posted automatically. Read it right here. Want to forward it? Tap <span className="text-gold font-semibold">Share</span>.</p>
+
+      <OddsTracker />
 
       {loading ? (
         <div className="space-y-3">
