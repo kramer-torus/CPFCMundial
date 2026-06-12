@@ -124,7 +124,7 @@ export function generateOddsSnapshot(
   const n = sorted.length;
 
   const rows: OddsEntry[] = sorted.map((r, i) => {
-    const raw = totalStrength === 0 || r.strength === 0 ? 0 : (totalStrength * OVERROUND) / r.strength;
+    const raw = totalStrength === 0 || r.strength === 0 ? 0 : totalStrength / (r.strength * OVERROUND);
     const odds = raw === 0 ? '—' : raw.toFixed(2);
     return {
       user_id: r.user_id,
