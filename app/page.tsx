@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { GameUser, DraftPick, TeamPoints, PlayerLeaderboard, STAGE_ORDER, KNOCKOUT_ROUNDS } from '@/lib/types';
 import ShareButton from '@/components/ShareButton';
+import FixtureTicker from '@/components/FixtureTicker';
 
 const RANK_BADGES = ['🥇', '🥈', '🥉'];
 
@@ -76,7 +77,7 @@ export default function HomePage() {
   return (
     <div className="page-fade">
       {/* Hero */}
-      <div className="-mx-4 px-6 py-8 mb-5" style={{ background: 'linear-gradient(160deg, #2a0a12 0%, #C4122E 35%, #8B0D20 65%, #1F3864 100%)' }}>
+      <div className="-mx-4 px-6 py-8" style={{ background: 'linear-gradient(160deg, #2a0a12 0%, #C4122E 35%, #8B0D20 65%, #1F3864 100%)' }}>
         <div className="flex items-start justify-between">
           <div>
             <h1 className="font-display font-bold text-5xl text-white leading-none tracking-wide">
@@ -88,6 +89,9 @@ export default function HomePage() {
           <div className="text-5xl opacity-80">🦅</div>
         </div>
       </div>
+
+      {/* Upcoming fixture ticker for drafted teams */}
+      <FixtureTicker />
 
       {/* Leaderboard header */}
       <div className="flex items-center justify-between mb-2">
