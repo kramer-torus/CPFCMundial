@@ -5,7 +5,7 @@ import { GameUser, DraftPick, Team, TeamPoints, KNOCKOUT_ROUNDS } from './types'
 
 export const ODDS_SNAPSHOT_ACTION = 'ODDS_SNAPSHOT';
 
-const RANK_DECAY = 0.1;
+const RANK_DECAY = 0.3;
 const POINTS_WEIGHT = 0.08; // each point ≈ ~1/12th of a rank-5 team's strength
 const OVERROUND = 1.12;     // 12% bookmaker margin
 
