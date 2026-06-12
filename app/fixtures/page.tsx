@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { DraftPick, GameUser, Team, TeamPoints } from '@/lib/types';
 import type { FixtureMatch } from '@/app/api/fixtures/route';
+import KnockoutBracket, { type OwnerInfo } from '@/components/KnockoutBracket';
 
 // Normalise football-data.org team names to our DB names
 const TEAM_NAME_MAP: Record<string, string> = {
@@ -535,43 +536,35 @@ export default function FixturesPage() {
             <GroupStandings teams={teams} pointsData={pointsData} picks={picks} users={users} />
           )}
 
-          {/* KNOCKOUT TAB */}
-          {tab === 'knockout' && (
-            <div className="space-y-6">
-              {knockoutMatches.length === 0 ? (
-                <div className="card py-8 text-center">
-                  <p className="text-white/40 text-sm">Knockout fixtures coming soon.</p>
-                </div>
-              ) : (
-                groupByRoundThenDate(knockoutMatches).map(([round, dateGroups]) => (
-                  <div key={round}>
-                    <h2 className="font-display font-bold text-xl text-white uppercase tracking-wider mb-3">
-                      {round}
-                    </h2>
-                    <div className="space-y-4">
-                      {dateGroups.map(([date, dayMatches]) => (
-                        <div key={date}>
-                          <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-2">{date}</h3>
-                          <div className="space-y-2">
-                            {dayMatches.map(m => (
-                              <MatchCard
-                                key={m.id}
-                                match={m}
-                                homeOwner={getOwner(m.homeTeam)}
-                                awayOwner={getOwner(m.awayTeam)}
-                                homeFlagEmoji={getFlagEmoji(m.homeTeam)}
-                                awayFlagEmoji={getFlagEmoji(m.awayTeam)}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      ))}
+          {/* KNOCKOUT TAB — bracket visualiser */}
+          {tab === 'knockout' && (() => {
+            // Build ownerMap for bracket: DB team name (lowercase) → OwnerInfo
+            const bracketOwnerMap = new Map<string, OwnerInfo>();
+            for (const pick of picks) {
+              const user = users.find(u => u.id === pick.user_id);
+              const team = teams.find(t => t.id === pick.team_id);
+              if (user && team) {
+                bracketOwnerMap.set(team.name.toLowerCase(), {
+                  displayName: user.display_name,
+                  colour: user.accent_colour,
+                });
+              }
+            }
+            return (
+              <div>
+                {knockoutMatches.length === 0 ? (
+                  <div className="space-y-4">
+                    <div className="card py-4 text-center">
+                      <p className="text-white/40 text-xs">Bracket unlocks after the group stage.</p>
                     </div>
+                    <KnockoutBracket matches={[]} ownerMap={bracketOwnerMap} teams={teams} />
                   </div>
-                ))
-              )}
-            </div>
-          )}
+                ) : (
+                  <KnockoutBracket matches={knockoutMatches} ownerMap={bracketOwnerMap} teams={teams} />
+                )}
+              </div>
+            );
+          })()}
         </>
       )}
     </div>
