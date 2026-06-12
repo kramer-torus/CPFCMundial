@@ -17,69 +17,63 @@ export default function AppleIcon() {
           position: 'relative',
         }}
       >
-        {/* Globe glow */}
+        {/* Subtle globe glow */}
         <div style={{
-          position: 'absolute', top: 8, left: 8,
-          width: 164, height: 164,
+          position: 'absolute', top: 20, left: 20, width: 140, height: 140,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(200,168,76,0.16) 0%, transparent 65%)',
+          background: 'radial-gradient(circle, rgba(200,168,76,0.14) 0%, transparent 70%)',
           display: 'flex',
         }} />
 
-        {/* Red top band */}
+        {/* Red top band — 44px */}
         <div style={{
-          width: '100%',
+          width: '100%', height: 44,
           background: 'linear-gradient(180deg, #D0142F 0%, #9A0E22 100%)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          paddingTop: '6px',
-          paddingBottom: '6px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
         }}>
           <span style={{
-            fontSize: '32px', fontWeight: 900,
+            fontSize: 28, fontWeight: 900,
             color: 'white', letterSpacing: '3px',
             fontFamily: 'sans-serif', lineHeight: 1,
           }}>CPFC</span>
         </div>
 
         {/* Gold trim */}
-        <div style={{ width: '100%', height: '2px', background: '#C9A84C', display: 'flex' }} />
+        <div style={{ width: '100%', height: 3, background: '#C9A84C', display: 'flex', flexShrink: 0 }} />
 
         {/* Stars */}
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '4px' }}>
-          <span style={{ fontSize: '11px', color: '#E8C84A', letterSpacing: '2px' }}>★★★★★</span>
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 8, flexShrink: 0 }}>
+          <span style={{ fontSize: 10, color: '#C9A84C', letterSpacing: '3px' }}>★ ★ ★ ★ ★</span>
         </div>
 
-        {/* Trophy */}
+        {/* Trophy — dominant centre */}
         <div style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          flex: 1, display: 'flex',
+          alignItems: 'center', justifyContent: 'center',
+          paddingBottom: 4,
         }}>
-          <span style={{ fontSize: '68px', lineHeight: 1 }}>🏆</span>
+          <span style={{ fontSize: 72, lineHeight: 1 }}>🏆</span>
         </div>
 
-        {/* Gold separator */}
-        <div style={{ width: '100%', height: '2px', background: '#C9A84C', display: 'flex' }} />
+        {/* Gold trim */}
+        <div style={{ width: '100%', height: 3, background: '#C9A84C', display: 'flex', flexShrink: 0 }} />
 
-        {/* Navy band */}
+        {/* Navy band — 36px */}
         <div style={{
-          width: '100%', background: '#080E1E',
+          width: '100%', height: 36,
+          background: '#080E1E',
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
-          paddingTop: '4px', paddingBottom: '6px', gap: '1px',
+          gap: 1, flexShrink: 0,
         }}>
           <span style={{
-            fontSize: '18px', fontWeight: 900,
-            color: 'white', letterSpacing: '2px',
-            fontFamily: 'sans-serif', lineHeight: 1,
+            fontSize: 15, fontWeight: 900, color: 'white',
+            letterSpacing: '2px', fontFamily: 'sans-serif', lineHeight: 1,
           }}>MUNDIAL</span>
           <span style={{
-            fontSize: '9px', fontWeight: 700,
-            color: '#C9A84C', letterSpacing: '4px',
-            fontFamily: 'sans-serif',
+            fontSize: 9, fontWeight: 700, color: '#C9A84C',
+            letterSpacing: '3px', fontFamily: 'sans-serif',
           }}>2026</span>
         </div>
       </div>
