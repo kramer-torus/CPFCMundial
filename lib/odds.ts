@@ -1,11 +1,68 @@
-// Server-side odds snapshot generator — no external LLM.
-// Produces tier + FIFA-ranking weighted decimal odds with narrative blurbs.
-// Stored in audit_log (action = ODDS_SNAPSHOT) whenever scores change.
+// Odds model: FIFA-ranking exponential decay → tournament win probability.
+// exp(-0.1 * rank): rank1≈0.90, rank5≈0.61, rank10≈0.37, rank20≈0.14, rank50≈0.01
+// This differentiates squads by WHICH teams they have within each tier, not just tier counts.
 import { GameUser, DraftPick, Team, TeamPoints, KNOCKOUT_ROUNDS } from './types';
 
 export const ODDS_SNAPSHOT_ACTION = 'ODDS_SNAPSHOT';
 
-const TIER_FUTURE_PTS: Record<number, number> = { 1: 14, 2: 9, 3: 5, 4: 3 };
+const RANK_DECAY = 0.1;
+const POINTS_WEIGHT = 0.08; // each point ≈ ~1/12th of a rank-5 team's strength
+const OVERROUND = 1.12;     // 12% bookmaker margin
+
+function rankStrength(rank: number): number {
+  return Math.exp(-RANK_DECAY * Math.max(rank, 1));
+}
+
+// Narrative flavour per team — used in blurbs
+const TEAM_LINES: Record<string, string> = {
+  'France':    '#1 in the world 🇫🇷',
+  'Brazil':    'five-time winners 🇧🇷',
+  'Argentina': 'defending champs 🏆',
+  'England':   "it's coming home 🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+  'Germany':   'the machine 🇩🇪',
+  'Spain':     'reigning Euro champs 🇪🇸',
+  'Portugal':  "Ronaldo's last dance 🐐",
+  'USA':       'USA at home 🇺🇸',
+  'Canada':    'host nation 🍁',
+  'Mexico':    'El Tri at home 🌮',
+  'Morocco':   'the disruptor 🌍',
+  'Netherlands': 'Total Football reborn 🇳🇱',
+};
+
+const MEDALS = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣'];
+
+const OUTSIDER_QUIPS = [
+  'the disrespected outsider 🤫',
+  'chaos is a strategy too ⚡',
+  'praying for upsets, every round 🙏',
+];
+
+function pick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function buildBlurb(medal: string, name: string, odds: string, top2: Team[], pos: number, total: number): string {
+  const [t1, t2] = top2;
+  const t1line = t1 ? TEAM_LINES[t1.name] : null;
+  const t2line = t2 ? TEAM_LINES[t2.name] : null;
+
+  let teamRef = '';
+  if (t1 && t2) teamRef = `${t1.flag_emoji} ${t1.name} + ${t2.flag_emoji} ${t2.name}`;
+  else if (t1) teamRef = `${t1.flag_emoji} ${t1.name}`;
+
+  let suffix: string;
+  if (pos === 0) {
+    suffix = (t1line && t2line) ? `${t1line} + ${t2line}` : t1line ?? t2line ?? 'the heist 💰';
+  } else if (pos === total - 1) {
+    return `${medal} *${name} $${odds}* — ${pick(OUTSIDER_QUIPS)}`;
+  } else if (pos < Math.ceil(total / 2)) {
+    suffix = t1line ?? 'in the mix 👀';
+  } else {
+    suffix = t1line ?? pick(['value in chaos ⚡', 'one big run changes everything', 'dark horse energy 🐴']);
+  }
+
+  return teamRef
+    ? `${medal} *${name} $${odds}* — ${teamRef}, ${suffix}`
+    : `${medal} *${name} $${odds}* — ${suffix}`;
+}
 
 export interface OddsEntry {
   user_id: string;
@@ -20,42 +77,6 @@ export interface OddsEntry {
 export interface OddsSnapshot {
   rows: OddsEntry[];
   generated_at: string;
-}
-
-function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-const FAV_LINES = [
-  (n: string, o: string) => `*${n} ${o}x* — squad depth is real. Hard to see past this one. 🏆`,
-  (n: string, o: string) => `*${n} ${o}x* — T1-heavy and looking ominous. Genuine favourite. 👑`,
-  (n: string, o: string) => `*${n} ${o}x* — leads the market. Tournament pedigree in that squad.`,
-];
-const MID_LINES = [
-  (n: string, o: string) => `*${n} ${o}x* — dangerous mid-ranger. One deep run flips this entirely.`,
-  (n: string, o: string) => `*${n} ${o}x* — in the mix. Underestimate at your peril. 👀`,
-  (n: string, o: string) => `*${n} ${o}x* — compact squad, could peak at exactly the right moment.`,
-];
-const OUTSIDER_LINES = [
-  (n: string, o: string) => `*${n} ${o}x* — value in chaos. The upset merchant of the group.`,
-  (n: string, o: string) => `*${n} ${o}x* — praying for wildcards to run deep. Not impossible. 😅`,
-  (n: string, o: string) => `*${n} ${o}x* — fighting uphill but tournament football is weird. ⚡`,
-];
-const BOTTOM_LINES = [
-  (n: string, o: string) => `*${n} ${o}x* — needs a miracle. Or three. Every single round. 🙏`,
-  (n: string, o: string) => `*${n} ${o}x* — the wooden spoon is beckoning. Nobody's done though.`,
-  (n: string, o: string) => `*${n} ${o}x* — clinging on. A couple of upsets and it's a different chat.`,
-];
-
-function squadNote(t1: number, t2: number, t3: number, t4: number, topTeam: string | null, topRanking: number): string {
-  if (t1 >= 3) return `${t1} elite sides still running. 🔥`;
-  if (t1 === 2 && topTeam) return `${topTeam} + one more T1 keeping the engine ticking.`;
-  if (t1 === 1 && topTeam) return `${topTeam} carrying the flag solo now.`;
-  if (t2 >= 3) return `Contenders-heavy — ${topTeam ?? 'one big run'} could change everything.`;
-  if (t4 >= 4) return `Four wildcards still breathing — disorder is the whole strategy.`;
-  if (topRanking <= 10 && topTeam) return `Top-10 ${topTeam} leading the charge.`;
-  if (t3 >= 3) return `Dark horses can bite — three still alive.`;
-  return '';
 }
 
 export function generateOddsSnapshot(
@@ -75,18 +96,17 @@ export function generateOddsSnapshot(
       .filter(tp => myPicks.some(p => p.team_id === tp.team_id))
       .reduce((s, tp) => s + tp.points, 0);
     const alivePicks = myPicks.filter(p => !eliminatedIds.has(p.team_id));
-    const expectedFuture = alivePicks.reduce((s, p) => {
-      const tier = teamById.get(p.team_id)?.tier ?? 4;
-      return s + (TIER_FUTURE_PTS[tier] ?? 3);
+
+    const squadStrength = alivePicks.reduce((s, p) => {
+      const rank = teamById.get(p.team_id)?.fifa_ranking ?? 80;
+      return s + rankStrength(rank);
     }, 0);
 
-    const tc: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
-    alivePicks.forEach(p => { const t = teamById.get(p.team_id)?.tier ?? 4; tc[t] = (tc[t] || 0) + 1; });
-
-    const bestAlive = alivePicks
+    const top2 = alivePicks
       .map(p => teamById.get(p.team_id))
-      .filter(Boolean)
-      .sort((a, b) => (a!.fifa_ranking ?? 999) - (b!.fifa_ranking ?? 999))[0];
+      .filter((t): t is Team => !!t)
+      .sort((a, b) => (a.fifa_ranking ?? 999) - (b.fifa_ranking ?? 999))
+      .slice(0, 2);
 
     return {
       user_id: u.id,
@@ -94,28 +114,18 @@ export function generateOddsSnapshot(
       accent_colour: u.accent_colour,
       points: currentPoints,
       teams_alive: alivePicks.length,
-      strength: currentPoints + expectedFuture,
-      tc,
-      bestTeamName: bestAlive ? `${bestAlive.flag_emoji} ${bestAlive.name}` : null,
-      bestTeamRanking: bestAlive?.fifa_ranking ?? 999,
+      strength: squadStrength + currentPoints * POINTS_WEIGHT,
+      top2,
     };
   });
 
-  const total = computed.reduce((s, r) => s + r.strength, 0);
+  const totalStrength = computed.reduce((s, r) => s + r.strength, 0);
   const sorted = [...computed].sort((a, b) => b.strength - a.strength);
   const n = sorted.length;
 
   const rows: OddsEntry[] = sorted.map((r, i) => {
-    const oddsNum = total === 0 || r.strength === 0 ? 0 : total / r.strength;
-    const odds = oddsNum === 0 ? '—' : oddsNum.toFixed(1);
-    const note = squadNote(r.tc[1], r.tc[2], r.tc[3], r.tc[4], r.bestTeamName, r.bestTeamRanking);
-
-    let line: string;
-    if (i === 0) line = pick(FAV_LINES)(r.display_name, odds);
-    else if (i === n - 1) line = pick(BOTTOM_LINES)(r.display_name, odds);
-    else if (i < Math.ceil(n / 2)) line = pick(MID_LINES)(r.display_name, odds);
-    else line = pick(OUTSIDER_LINES)(r.display_name, odds);
-
+    const raw = totalStrength === 0 || r.strength === 0 ? 0 : (totalStrength * OVERROUND) / r.strength;
+    const odds = raw === 0 ? '—' : raw.toFixed(2);
     return {
       user_id: r.user_id,
       display_name: r.display_name,
@@ -123,7 +133,7 @@ export function generateOddsSnapshot(
       points: r.points,
       teams_alive: r.teams_alive,
       odds,
-      blurb: note ? `${line} ${note}` : line,
+      blurb: buildBlurb(MEDALS[i] ?? `${i + 1}`, r.display_name, odds, r.top2, i, n),
     };
   });
 

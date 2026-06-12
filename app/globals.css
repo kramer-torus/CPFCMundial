@@ -37,3 +37,15 @@
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+
+/* Fixture ticker — seamless horizontal scroll */
+@keyframes tickerScroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.ticker-track {
+  animation: tickerScroll var(--ticker-dur, 40s) linear infinite;
+}
+.ticker-wrap:hover .ticker-track {
+  animation-play-state: paused;
+}

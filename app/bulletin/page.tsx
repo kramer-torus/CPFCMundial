@@ -5,7 +5,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { Share2, Check, Copy, Newspaper, TrendingUp } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import AuthGuard from '@/components/AuthGuard';
-import { ODDS_SNAPSHOT_ACTION, type OddsEntry, type OddsSnapshot } from '@/lib/odds';
+import { ODDS_SNAPSHOT_ACTION, generateOddsSnapshot, type OddsEntry, type OddsSnapshot } from '@/lib/odds';
+import type { GameUser, DraftPick, Team, TeamPoints } from '@/lib/types';
 
 interface Bulletin {
   id: string;
@@ -23,6 +24,7 @@ function OddsTracker() {
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
 
   const fetchSnapshot = useCallback(async () => {
+    // Try stored snapshot first (generated server-side after each score change)
     const { data } = await supabase
       .from('audit_log')
       .select('detail, created_at')
@@ -35,7 +37,23 @@ function OddsTracker() {
         const parsed = JSON.parse(data.detail) as OddsSnapshot;
         setSnapshot(parsed);
         setUpdatedAt(new Date(data.created_at));
-      } catch { /* ignore malformed */ }
+        return;
+      } catch { /* fall through to client-side computation */ }
+    }
+    // No stored snapshot yet — compute client-side as fallback
+    const [usersRes, picksRes, teamsRes, pointsRes] = await Promise.all([
+      supabase.from('users').select('*'),
+      supabase.from('draft_picks').select('*'),
+      supabase.from('teams').select('id, name, tier, flag_emoji, fifa_ranking, confederation, is_debut'),
+      supabase.from('team_points').select('*'),
+    ]);
+    const users = (usersRes.data ?? []) as GameUser[];
+    const picks = (picksRes.data ?? []) as DraftPick[];
+    const teams = (teamsRes.data ?? []) as Team[];
+    const points = (pointsRes.data ?? []) as TeamPoints[];
+    if (users.length && picks.length && teams.length) {
+      setSnapshot(generateOddsSnapshot(users, picks, teams, points));
+      setUpdatedAt(new Date());
     }
   }, []);
 
@@ -87,13 +105,13 @@ function OddsTracker() {
                 <span className="text-white/30 text-xs ml-2 tabular-nums">{r.points}pts · {r.teams_alive} alive</span>
               </div>
               <div className="relative flex-shrink-0 text-right">
+                {r.odds !== '—' && <span className="text-white/30 text-xs mr-0.5">$</span>}
                 <span
                   className="font-display font-bold text-xl tabular-nums leading-none"
                   style={{ color: isFav ? r.accent_colour : oddsNum > 6 ? '#ffffff35' : '#ffffff70' }}
                 >
                   {r.odds}
                 </span>
-                {r.odds !== '—' && <span className="text-white/25 text-[10px] ml-0.5">x</span>}
               </div>
             </div>
           );
@@ -110,7 +128,7 @@ function OddsTracker() {
       </div>
 
       <p className="text-white/20 text-[10px]">
-        Tier-weighted odds — T1 elite squads valued at 14 expected pts, T2 9, T3 5, T4 3, plus points scored. Recalculates when scores change.
+        Decimal odds in $ — weighted by FIFA ranking (exp decay). Differentiates by which specific teams you have, not just tier. Updates live as teams are eliminated.
       </p>
     </div>
   );
