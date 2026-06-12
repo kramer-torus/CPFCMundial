@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.7" y2="1">
+      <stop offset="0%" stop-color="#D0142F"/>
+      <stop offset="55%" stop-color="#9A0E22"/>
+      <stop offset="100%" stop-color="#6B0015"/>
+    </linearGradient>
+    <linearGradient id="gld" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5DC6A"/>
+      <stop offset="100%" stop-color="#B8902A"/>
+    </linearGradient>
+    <linearGradient id="navy" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1E3870"/>
+      <stop offset="100%" stop-color="#0F1F40"/>
+    </linearGradient>
+    <!-- Circular clip for WhatsApp crop -->
+    <clipPath id="circle">
+      <circle cx="256" cy="256" r="256"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#circle)">
+    <!-- Background -->
+    <rect width="512" height="512" fill="url(#bg)"/>
+
+    <!-- Diagonal sheen (Palace kit nod) -->
+    <polygon points="0,0 220,0 0,220" fill="rgba(255,255,255,0.07)"/>
+
+    <!-- ====== EAGLE ====== -->
+
+    <!-- Left upper wing -->
+    <path d="M 256,242
+             C 218,228 152,206 74,188
+             C 36,178 12,186 10,204
+             C 44,196 76,200 116,214
+             C 166,231 220,247 256,262 Z"
+          fill="url(#gld)"/>
+
+    <!-- Right upper wing (mirror) -->
+    <path d="M 256,242
+             C 294,228 360,206 438,188
+             C 476,178 500,186 502,204
+             C 468,196 436,200 396,214
+             C 346,231 292,247 256,262 Z"
+          fill="url(#gld)"/>
+
+    <!-- Left lower wing sweep (secondary feathers) -->
+    <path d="M 256,260
+             C 210,248 130,244 44,262
+             C 88,236 174,228 256,248 Z"
+          fill="url(#gld)" opacity="0.80"/>
+
+    <!-- Right lower wing sweep -->
+    <path d="M 256,260
+             C 302,248 382,244 468,262
+             C 424,236 338,228 256,248 Z"
+          fill="url(#gld)" opacity="0.80"/>
+
+    <!-- Body -->
+    <ellipse cx="256" cy="296" rx="24" ry="52" fill="url(#gld)"/>
+
+    <!-- Head -->
+    <circle cx="256" cy="192" r="30" fill="url(#gld)"/>
+
+    <!-- Beak (pointing right — heraldic) -->
+    <polygon points="286,189 256,182 256,202" fill="#8B0D20"/>
+
+    <!-- Eye -->
+    <circle cx="265" cy="188" r="6" fill="#1A3060"/>
+    <circle cx="266.5" cy="187" r="2.5" fill="white"/>
+
+    <!-- Tail feathers -->
+    <path d="M 233,344 L 248,376 L 256,392 L 264,376 L 279,344
+             L 266,358 L 256,386 L 246,358 Z"
+          fill="url(#gld)"/>
+
+    <!-- ====== BOTTOM BAND ====== -->
+    <!-- Navy band -->
+    <rect x="0" y="370" width="512" height="142" fill="url(#navy)"/>
+
+    <!-- Gold divider line -->
+    <rect x="0" y="367" width="512" height="5" fill="#C9A84C"/>
+
+    <!-- CPFC lettering -->
+    <text x="256" y="444"
+          font-family="Arial Black, Impact, 'Helvetica Neue', sans-serif"
+          font-weight="900" font-size="78"
+          fill="white" text-anchor="middle" letter-spacing="4">CPFC</text>
+
+    <!-- MUNDIAL 26 -->
+    <text x="256" y="491"
+          font-family="Arial, 'Helvetica Neue', sans-serif"
+          font-weight="700" font-size="24"
+          fill="#C9A84C" text-anchor="middle" letter-spacing="10">MUNDIAL 26</text>
+  </g>
+</svg>
