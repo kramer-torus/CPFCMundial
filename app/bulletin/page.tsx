@@ -5,11 +5,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Share2, Check, Copy, Newspaper, TrendingUp } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import AuthGuard from '@/components/AuthGuard';
-import { GameUser, DraftPick, Team, TeamPoints, KNOCKOUT_ROUNDS } from '@/lib/types';
-
-// Expected future points from an alive team, weighted by tier.
-// T1 elites run deep; T4 wildcards scrape group points at best.
-const TIER_FUTURE_PTS: Record<number, number> = { 1: 14, 2: 9, 3: 5, 4: 3 };
+import { ODDS_SNAPSHOT_ACTION, type OddsEntry, type OddsSnapshot } from '@/lib/odds';
 
 interface Bulletin {
   id: string;
@@ -18,92 +14,42 @@ interface Bulletin {
   created_at: string;
 }
 
-interface OddsRow {
-  user_id: string;
-  display_name: string;
-  accent_colour: string;
-  points: number;
-  teams_alive: number;
-  squad_strength: number;
-  odds: string;
-}
-
-function calcOdds(users: GameUser[], picks: DraftPick[], teams: Team[], points: TeamPoints[]): OddsRow[] {
-  const teamById = new Map(teams.map(t => [t.id, t]));
-  const eliminatedIds = new Set(
-    points.filter(tp => KNOCKOUT_ROUNDS.includes(tp.round) && tp.points === 0).map(tp => tp.team_id),
-  );
-
-  const rows = users.map(u => {
-    const myPicks = picks.filter(p => p.user_id === u.id);
-    const currentPoints = points
-      .filter(tp => myPicks.some(p => p.team_id === tp.team_id))
-      .reduce((s, tp) => s + tp.points, 0);
-    const alivePicks = myPicks.filter(p => !eliminatedIds.has(p.team_id));
-    const expectedFuture = alivePicks.reduce((s, p) => {
-      const tier = teamById.get(p.team_id)?.tier ?? 4;
-      return s + (TIER_FUTURE_PTS[tier] ?? 3);
-    }, 0);
-    return {
-      user_id: u.id,
-      display_name: u.display_name,
-      accent_colour: u.accent_colour,
-      points: currentPoints,
-      teams_alive: alivePicks.length,
-      strength: currentPoints + expectedFuture,
-      squad_strength: expectedFuture,
-    };
-  });
-
-  const total = rows.reduce((s, r) => s + r.strength, 0);
-  return rows
-    .map(r => ({
-      user_id: r.user_id,
-      display_name: r.display_name,
-      accent_colour: r.accent_colour,
-      points: r.points,
-      teams_alive: r.teams_alive,
-      squad_strength: r.squad_strength,
-      odds: total === 0 || r.strength === 0 ? '—' : (total / r.strength).toFixed(1),
-    }))
-    .sort((a, b) => (parseFloat(a.odds) || 999) - (parseFloat(b.odds) || 999));
-}
-
 export default function BulletinPage() {
   return <AuthGuard><BulletinFeed /></AuthGuard>;
 }
 
 function OddsTracker() {
-  const [rows, setRows] = useState<OddsRow[]>([]);
+  const [snapshot, setSnapshot] = useState<OddsSnapshot | null>(null);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
 
-  const fetchOdds = useCallback(async () => {
-    const [usersRes, picksRes, teamsRes, pointsRes] = await Promise.all([
-      supabase.from('users').select('*'),
-      supabase.from('draft_picks').select('*'),
-      supabase.from('teams').select('id, tier'),
-      supabase.from('team_points').select('*'),
-    ]);
-    const users: GameUser[] = usersRes.data || [];
-    const picks: DraftPick[] = picksRes.data || [];
-    const teams = (teamsRes.data || []) as Team[];
-    const points: TeamPoints[] = pointsRes.data || [];
-    if (users.length && picks.length && teams.length) {
-      setRows(calcOdds(users, picks, teams, points));
-      setUpdatedAt(new Date());
+  const fetchSnapshot = useCallback(async () => {
+    const { data } = await supabase
+      .from('audit_log')
+      .select('detail, created_at')
+      .eq('action', ODDS_SNAPSHOT_ACTION)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    if (data) {
+      try {
+        const parsed = JSON.parse(data.detail) as OddsSnapshot;
+        setSnapshot(parsed);
+        setUpdatedAt(new Date(data.created_at));
+      } catch { /* ignore malformed */ }
     }
   }, []);
 
   useEffect(() => {
-    fetchOdds();
-    const ch = supabase.channel('odds-rt')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'team_points' }, fetchOdds)
+    fetchSnapshot();
+    const ch = supabase.channel('odds-snap-rt')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'audit_log' }, fetchSnapshot)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [fetchOdds]);
+  }, [fetchSnapshot]);
 
-  if (!rows.length) return null;
+  if (!snapshot?.rows?.length) return null;
 
+  const rows: OddsEntry[] = snapshot.rows;
   const favourite = rows[0];
   const maxOdds = Math.max(...rows.map(r => parseFloat(r.odds) || 0));
 
@@ -120,22 +66,21 @@ function OddsTracker() {
           </span>
         )}
       </div>
-      <div className="space-y-1.5">
+
+      {/* Compact odds table */}
+      <div className="space-y-1">
         {rows.map((r, i) => {
           const isFav = i === 0 && r.odds !== '—';
           const oddsNum = parseFloat(r.odds) || 0;
-          const barWidth = maxOdds > 0 ? `${Math.round((maxOdds - oddsNum + 1) / maxOdds * 100)}%` : '0%';
+          const barPct = maxOdds > 0 ? Math.round((maxOdds - oddsNum + 1) / maxOdds * 100) : 0;
           return (
             <div
               key={r.user_id}
               className="relative flex items-center gap-2 rounded-lg px-2.5 py-2 overflow-hidden"
               style={{ borderWidth: isFav ? 1 : 0, borderColor: `${r.accent_colour}35` }}
             >
-              {/* strength bar */}
-              <div
-                className="absolute inset-y-0 left-0 rounded-lg opacity-10"
-                style={{ width: barWidth, background: r.accent_colour }}
-              />
+              <div className="absolute inset-y-0 left-0 rounded-lg opacity-10 pointer-events-none"
+                style={{ width: `${barPct}%`, background: r.accent_colour }} />
               <div className="relative w-4 flex-shrink-0 text-center text-white/30 text-xs font-bold">{i + 1}</div>
               <div className="relative flex-1 min-w-0">
                 <span className="text-white text-sm font-semibold">{r.display_name}</span>
@@ -154,8 +99,18 @@ function OddsTracker() {
           );
         })}
       </div>
+
+      {/* Narrative blurbs */}
+      <div className="border-t border-white/5 pt-3 space-y-1.5">
+        {rows.map(r => (
+          <p key={r.user_id} className="text-white/55 text-xs leading-snug">
+            {r.blurb}
+          </p>
+        ))}
+      </div>
+
       <p className="text-white/20 text-[10px]">
-        Weighted by squad tier: T1 squads valued at 14 expected pts, T2 at 9, T3 at 5, T4 at 3 — plus points already scored. {favourite.display_name} leads at {favourite.odds}x.
+        Tier-weighted odds — T1 elite squads valued at 14 expected pts, T2 9, T3 5, T4 3, plus points scored. Recalculates when scores change.
       </p>
     </div>
   );

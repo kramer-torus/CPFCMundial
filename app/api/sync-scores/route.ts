@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { generateOddsSnapshot, ODDS_SNAPSHOT_ACTION } from '@/lib/odds';
+import type { GameUser, DraftPick, Team, TeamPoints } from '@/lib/types';
 
 const FD_BASE = 'https://api.football-data.org/v4';
 const WC_CODE = 'WC';
@@ -71,12 +73,13 @@ export async function GET(req: NextRequest) {
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  const { data: teamsData } = await supabase.from('teams').select('id, name');
-  const teams: { id: string; name: string }[] = teamsData ?? [];
+  const { data: teamsData } = await supabase.from('teams').select('id, name, tier, flag_emoji, fifa_ranking, confederation, is_debut');
+  const teams: Team[] = (teamsData ?? []) as Team[];
+  const teamLookup: { id: string; name: string }[] = teams;
 
   function findId(apiName: string): string | null {
     const normalised = normaliseName(apiName);
-    return teams.find(t => t.name.toLowerCase() === normalised.toLowerCase())?.id ?? null;
+    return teamLookup.find(t => t.name.toLowerCase() === normalised.toLowerCase())?.id ?? null;
   }
 
   const rows: UpsertRow[] = [];
@@ -107,6 +110,26 @@ export async function GET(req: NextRequest) {
   if (rows.length > 0) {
     const { error } = await supabase.from('team_points').upsert(rows, { onConflict: 'team_id,round' });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    // Regenerate odds snapshot now that scores changed
+    const [usersRes, picksRes, freshPointsRes] = await Promise.all([
+      supabase.from('users').select('*'),
+      supabase.from('draft_picks').select('*'),
+      supabase.from('team_points').select('*'),
+    ]);
+    const snapUsers = (usersRes.data ?? []) as GameUser[];
+    const snapPicks = (picksRes.data ?? []) as DraftPick[];
+    const snapPoints = (freshPointsRes.data ?? []) as TeamPoints[];
+    if (snapUsers.length && snapPicks.length) {
+      const snapshot = generateOddsSnapshot(snapUsers, snapPicks, teams, snapPoints);
+      const adminUser = snapUsers.find(u => u.is_admin) ?? snapUsers[0];
+      await supabase.from('audit_log').insert({
+        user_id: adminUser.id,
+        action: ODDS_SNAPSHOT_ACTION,
+        detail: JSON.stringify(snapshot),
+        created_at: now,
+      });
+    }
   }
 
   const deduped = unknownTeams.filter((n, i) => unknownTeams.indexOf(n) === i);
