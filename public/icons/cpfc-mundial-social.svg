@@ -1,96 +1,125 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0.7" y2="1">
+    <linearGradient id="bg" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#0D1B3E"/>
+      <stop offset="100%" stop-color="#1A0A20"/>
+    </linearGradient>
+    <linearGradient id="redBand" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#D0142F"/>
-      <stop offset="55%" stop-color="#9A0E22"/>
-      <stop offset="100%" stop-color="#6B0015"/>
+      <stop offset="100%" stop-color="#9A0E22"/>
     </linearGradient>
-    <linearGradient id="gld" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#F5DC6A"/>
-      <stop offset="100%" stop-color="#B8902A"/>
+    <linearGradient id="trophy" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%"   stop-color="#FAF0A0"/>
+      <stop offset="25%"  stop-color="#E8C84A"/>
+      <stop offset="60%"  stop-color="#C9A020"/>
+      <stop offset="100%" stop-color="#7A5C10"/>
     </linearGradient>
-    <linearGradient id="navy" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#1E3870"/>
-      <stop offset="100%" stop-color="#0F1F40"/>
+    <linearGradient id="trophyShine" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"  stop-color="rgba(255,255,255,0.40)"/>
+      <stop offset="50%" stop-color="rgba(255,255,255,0)"/>
     </linearGradient>
-    <!-- Circular clip for WhatsApp crop -->
+    <radialGradient id="glow" cx="50%" cy="48%" r="42%">
+      <stop offset="0%"   stop-color="rgba(200,168,76,0.22)"/>
+      <stop offset="100%" stop-color="rgba(200,168,76,0)"/>
+    </radialGradient>
     <clipPath id="circle">
       <circle cx="256" cy="256" r="256"/>
     </clipPath>
   </defs>
 
   <g clip-path="url(#circle)">
-    <!-- Background -->
+    <!-- Deep background -->
     <rect width="512" height="512" fill="url(#bg)"/>
 
-    <!-- Diagonal sheen (Palace kit nod) -->
-    <polygon points="0,0 220,0 0,220" fill="rgba(255,255,255,0.07)"/>
+    <!-- Globe glow -->
+    <circle cx="256" cy="258" r="195" fill="url(#glow)"/>
 
-    <!-- ====== EAGLE ====== -->
+    <!-- Globe latitude lines -->
+    <ellipse cx="256" cy="258" rx="190" ry="190" fill="none" stroke="rgba(200,168,76,0.09)" stroke-width="1.5"/>
+    <ellipse cx="256" cy="258" rx="190" ry="105" fill="none" stroke="rgba(200,168,76,0.08)" stroke-width="1.5"/>
+    <ellipse cx="256" cy="258" rx="190" ry="42"  fill="none" stroke="rgba(200,168,76,0.06)" stroke-width="1.5"/>
+    <!-- Globe longitude curves -->
+    <path d="M256,68 Q462,258 256,448" stroke="rgba(200,168,76,0.09)" stroke-width="1.5" fill="none"/>
+    <path d="M256,68 Q50,258 256,448"  stroke="rgba(200,168,76,0.09)" stroke-width="1.5" fill="none"/>
+    <path d="M256,68 Q360,258 256,448" stroke="rgba(200,168,76,0.06)" stroke-width="1.5" fill="none"/>
+    <path d="M256,68 Q152,258 256,448" stroke="rgba(200,168,76,0.06)" stroke-width="1.5" fill="none"/>
 
-    <!-- Left upper wing -->
-    <path d="M 256,242
-             C 218,228 152,206 74,188
-             C 36,178 12,186 10,204
-             C 44,196 76,200 116,214
-             C 166,231 220,247 256,262 Z"
-          fill="url(#gld)"/>
+    <!-- ====== RED TOP BANNER ====== -->
+    <path d="M0,0 L512,0 L512,105 Q388,148 256,136 Q124,148 0,105 Z" fill="url(#redBand)"/>
 
-    <!-- Right upper wing (mirror) -->
-    <path d="M 256,242
-             C 294,228 360,206 438,188
-             C 476,178 500,186 502,204
-             C 468,196 436,200 396,214
-             C 346,231 292,247 256,262 Z"
-          fill="url(#gld)"/>
-
-    <!-- Left lower wing sweep (secondary feathers) -->
-    <path d="M 256,260
-             C 210,248 130,244 44,262
-             C 88,236 174,228 256,248 Z"
-          fill="url(#gld)" opacity="0.80"/>
-
-    <!-- Right lower wing sweep -->
-    <path d="M 256,260
-             C 302,248 382,244 468,262
-             C 424,236 338,228 256,248 Z"
-          fill="url(#gld)" opacity="0.80"/>
-
-    <!-- Body -->
-    <ellipse cx="256" cy="296" rx="24" ry="52" fill="url(#gld)"/>
-
-    <!-- Head -->
-    <circle cx="256" cy="192" r="30" fill="url(#gld)"/>
-
-    <!-- Beak (pointing right — heraldic) -->
-    <polygon points="286,189 256,182 256,202" fill="#8B0D20"/>
-
-    <!-- Eye -->
-    <circle cx="265" cy="188" r="6" fill="#1A3060"/>
-    <circle cx="266.5" cy="187" r="2.5" fill="white"/>
-
-    <!-- Tail feathers -->
-    <path d="M 233,344 L 248,376 L 256,392 L 264,376 L 279,344
-             L 266,358 L 256,386 L 246,358 Z"
-          fill="url(#gld)"/>
-
-    <!-- ====== BOTTOM BAND ====== -->
-    <!-- Navy band -->
-    <rect x="0" y="370" width="512" height="142" fill="url(#navy)"/>
-
-    <!-- Gold divider line -->
-    <rect x="0" y="367" width="512" height="5" fill="#C9A84C"/>
-
-    <!-- CPFC lettering -->
-    <text x="256" y="444"
+    <!-- CPFC -->
+    <text x="256" y="88"
           font-family="Arial Black, Impact, 'Helvetica Neue', sans-serif"
           font-weight="900" font-size="78"
-          fill="white" text-anchor="middle" letter-spacing="4">CPFC</text>
+          fill="white" text-anchor="middle" letter-spacing="8">CPFC</text>
 
-    <!-- MUNDIAL 26 -->
-    <text x="256" y="491"
-          font-family="Arial, 'Helvetica Neue', sans-serif"
-          font-weight="700" font-size="24"
-          fill="#C9A84C" text-anchor="middle" letter-spacing="10">MUNDIAL 26</text>
+    <!-- Gold trim under banner -->
+    <path d="M0,103 Q128,146 256,134 Q384,146 512,103 L512,109 Q384,152 256,140 Q128,152 0,109 Z"
+          fill="#C9A84C"/>
+
+    <!-- ====== TROPHY ====== -->
+
+    <!-- Stars above trophy -->
+    <text x="256" y="178"
+          font-family="Arial, sans-serif" font-size="26"
+          fill="#E8C84A" text-anchor="middle">★ ★ ★ ★ ★</text>
+
+    <!-- Trophy cup body -->
+    <path d="M 168,195
+             L 344,195
+             C 356,195 362,205 360,228
+             C 356,268 336,300 306,316
+             C 288,325 272,329 256,329
+             C 240,329 224,325 206,316
+             C 176,300 156,268 152,228
+             C 150,205 156,195 168,195 Z"
+          fill="url(#trophy)"/>
+
+    <!-- Trophy shine on left face -->
+    <path d="M 178,200
+             C 170,205 162,220 162,245
+             C 162,270 172,292 182,306
+             C 164,290 154,264 154,234
+             C 154,210 162,198 178,200 Z"
+          fill="url(#trophyShine)"/>
+
+    <!-- Left handle -->
+    <path d="M 168,212 C 130,214 110,238 114,264 C 118,288 142,300 168,288"
+          fill="none" stroke="url(#trophy)" stroke-width="24" stroke-linecap="round"/>
+    <!-- Left handle inner shine -->
+    <path d="M 166,215 C 136,218 118,240 122,263"
+          fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="8" stroke-linecap="round"/>
+
+    <!-- Right handle -->
+    <path d="M 344,212 C 382,214 402,238 398,264 C 394,288 370,300 344,288"
+          fill="none" stroke="url(#trophy)" stroke-width="24" stroke-linecap="round"/>
+
+    <!-- Stem -->
+    <rect x="241" y="329" width="30" height="52" rx="5" fill="url(#trophy)"/>
+
+    <!-- Base tier 1 (wide) -->
+    <rect x="196" y="381" width="120" height="18" rx="5" fill="url(#trophy)"/>
+    <!-- Base highlight -->
+    <rect x="196" y="381" width="120" height="6" rx="3" fill="rgba(255,255,255,0.28)"/>
+    <!-- Base tier 2 (wider) -->
+    <rect x="182" y="399" width="148" height="14" rx="4" fill="url(#trophy)" opacity="0.82"/>
+
+    <!-- Globe atop trophy -->
+    <circle cx="256" cy="195" r="36" fill="#0D1B3E" stroke="url(#trophy)" stroke-width="4"/>
+    <ellipse cx="256" cy="195" rx="36" ry="36" fill="none" stroke="rgba(200,168,76,0.45)" stroke-width="1.2"/>
+    <ellipse cx="256" cy="195" rx="22" ry="36" fill="none" stroke="rgba(200,168,76,0.32)" stroke-width="1.2"/>
+    <line x1="220" y1="195" x2="292" y2="195" stroke="rgba(200,168,76,0.40)" stroke-width="1.2"/>
+    <line x1="224" y1="183" x2="288" y2="183" stroke="rgba(200,168,76,0.22)" stroke-width="1"/>
+    <line x1="224" y1="207" x2="288" y2="207" stroke="rgba(200,168,76,0.22)" stroke-width="1"/>
+
+    <!-- ====== BOTTOM BAND ====== -->
+    <rect x="0" y="428" width="512" height="4"  fill="#C9A84C"/>
+    <rect x="0" y="432" width="512" height="80" fill="#080E1E"/>
+
+    <!-- MUNDIAL 2026 -->
+    <text x="256" y="482"
+          font-family="Arial Black, Impact, 'Helvetica Neue', sans-serif"
+          font-weight="900" font-size="50"
+          fill="white" text-anchor="middle" letter-spacing="5">MUNDIAL 2026</text>
   </g>
 </svg>
