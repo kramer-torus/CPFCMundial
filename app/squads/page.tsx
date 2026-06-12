@@ -4,9 +4,38 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { GameUser, DraftPick, TeamPoints, Team, KNOCKOUT_ROUNDS, TIER_COLORS } from '@/lib/types';
+import { GameUser, DraftPick, TeamPoints, Team, KNOCKOUT_ROUNDS } from '@/lib/types';
+import type { FixtureMatch } from '@/app/api/fixtures/route';
 
 const RANK_BADGES = ['🥇','🥈','🥉'];
+
+const TEAM_NAME_MAP: Record<string, string> = {
+  'IR Iran': 'Iran', 'Korea Republic': 'South Korea',
+  "Côte d'Ivoire": 'Ivory Coast', "Cote d'Ivoire": 'Ivory Coast',
+  'Bosnia-Herzegovina': 'Bosnia & Herzegovina', 'Czech Republic': 'Czechia',
+  'Cape Verde Islands': 'Cape Verde', 'Curaçao': 'Curacao',
+  'Congo DR': 'DR Congo', 'Democratic Republic of Congo': 'DR Congo',
+};
+
+function normName(n: string) { return (TEAM_NAME_MAP[n] ?? n).toLowerCase(); }
+
+function getNextFixture(teamName: string, fixtures: FixtureMatch[]): FixtureMatch | null {
+  const key = teamName.toLowerCase();
+  return fixtures
+    .filter(m => ['SCHEDULED','TIMED','IN_PLAY'].includes(m.status))
+    .filter(m => normName(m.homeTeam) === key || normName(m.awayTeam) === key)
+    .sort((a, b) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime())[0] ?? null;
+}
+
+function fmtNext(utcDate: string): string {
+  const d = new Date(utcDate);
+  const now = new Date();
+  const tom = new Date(now); tom.setDate(tom.getDate() + 1);
+  const day = d.toDateString() === now.toDateString() ? 'Today'
+    : d.toDateString() === tom.toDateString() ? 'Tomorrow'
+    : d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
+  return `${day} · ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+}
 
 interface PlayerSquad {
   user: GameUser; totalPoints: number; teamsAlive: number;
@@ -38,6 +67,9 @@ export default function SquadsPage() {
   const [squads, setSquads] = useState<PlayerSquad[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasPicks, setHasPicks] = useState(false);
+  const [pointsData, setPointsData] = useState<TeamPoints[]>([]);
+  const [fixtures, setFixtures] = useState<FixtureMatch[]>([]);
+  const [allTeams, setAllTeams] = useState<Team[]>([]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -47,9 +79,12 @@ export default function SquadsPage() {
         supabase.from('teams').select('*'),
         supabase.from('team_points').select('*'),
       ]);
+      const fixturesJson = await fetch('/api/fixtures').then(r=>r.json()).catch(()=>({matches:[]}));
       const users: GameUser[] = usersRes.data??[]; const picks: DraftPick[] = picksRes.data??[];
-      const teams: Team[] = teamsRes.data??[]; const pointsData: TeamPoints[] = pointsRes.data??[];
-      setHasPicks(picks.length>0); setSquads(buildSquads(users,picks,teams,pointsData));
+      const teams: Team[] = teamsRes.data??[]; const pd: TeamPoints[] = pointsRes.data??[];
+      setHasPicks(picks.length>0); setSquads(buildSquads(users,picks,teams,pd));
+      setPointsData(pd); setAllTeams(teams);
+      setFixtures(fixturesJson.matches ?? []);
     } catch {} finally { setLoading(false); }
   }, []);
 
@@ -93,22 +128,47 @@ export default function SquadsPage() {
                 </div>
               </div>
               <div className="h-[2px] mx-4 mb-3 rounded-full" style={{background:`linear-gradient(90deg,${squad.user.accent_colour},transparent)`}} />
-              <div className="grid grid-cols-2 gap-2 px-3 pb-3">
-                {squad.picks.map(pick=>{
-                  if(!pick.team) return null;
-                  const tc=TIER_COLORS[pick.team.tier];
+              <div className="space-y-2 px-3 pb-3">
+                {squad.picks.map(pick => {
+                  if (!pick.team) return null;
+                  const gwRounds = ['GW1','GW2','GW3'];
+                  let gp=0,w=0,d=0,l=0;
+                  for (const r of gwRounds) {
+                    const row = pointsData.find(tp => tp.team_id === pick.team_id && tp.round === r);
+                    if (!row) continue; gp++;
+                    if (row.points===3) w++; else if (row.points===1) d++; else l++;
+                  }
+                  const next = getNextFixture(pick.team.name, fixtures);
+                  const oppName = next ? normName(next.homeTeam) === pick.team.name.toLowerCase()
+                    ? (TEAM_NAME_MAP[next.awayTeam] ?? next.awayTeam)
+                    : (TEAM_NAME_MAP[next.homeTeam] ?? next.homeTeam) : null;
+                  const oppTeam = oppName ? allTeams.find(t => t.name.toLowerCase() === oppName.toLowerCase()) : null;
                   return (
-                    <div key={pick.id} className={`rounded-xl border border-white/8 p-2.5 flex items-center gap-2.5 ${pick.eliminated?'opacity-40':''}`} style={{background:'#0F1923'}}>
-                      <span className="text-3xl leading-none flex-shrink-0">{pick.team.flag_emoji}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-white text-xs font-semibold truncate leading-tight">{pick.team.name}</span>
-                          {pick.eliminated&&<span className="text-white/40 text-[10px] font-bold">Out</span>}
+                    <div key={pick.id}
+                      className={`rounded-xl border border-white/8 px-3 py-2.5 flex items-start justify-between gap-3 ${pick.eliminated ? 'opacity-45' : ''}`}
+                      style={{ background: '#0F1923' }}>
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <span className="text-2xl leading-none flex-shrink-0">{pick.team.flag_emoji}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-white text-sm leading-tight">{pick.team.name}</div>
+                          <div className="text-white/35 text-[11px] mt-0.5">
+                            {pick.team.fifa_group ? `Group ${pick.team.fifa_group.replace(/^GROUP_/,'')}` : ''}
+                            {gp > 0 ? ` · ${gp}p · ${w}W ${d}D ${l}L` : ' · Yet to play'}
+                          </div>
+                          {next && !pick.eliminated && (
+                            <div className="text-white/30 text-[10px] mt-0.5">
+                              Next: vs {oppTeam?.flag_emoji ?? '🏳️'} {oppName} · {fmtNext(next.utcDate)}
+                            </div>
+                          )}
                         </div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className={`pill text-[10px] py-0 px-1.5 ${tc.bg} ${tc.text} ${tc.border} border`}>T{pick.team.tier}</span>
-                          <span className={`font-display font-bold text-sm tabular-nums ${pick.points>0?'text-gold':'text-white/25'}`}>{pick.points}</span>
-                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                        {pick.eliminated ? (
+                          <span className="inline-flex items-center gap-1 bg-rose-500/10 border border-rose-500/25 text-rose-400 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Eliminated</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Still In It</span>
+                        )}
+                        <span className={`font-display font-bold text-base tabular-nums ${pick.points > 0 ? 'text-gold' : 'text-white/25'}`}>{pick.points}</span>
                       </div>
                     </div>
                   );

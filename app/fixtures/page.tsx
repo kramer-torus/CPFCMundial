@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Calendar } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
-import { DraftPick, GameUser, Team } from '@/lib/types';
+import { DraftPick, GameUser, Team, TeamPoints } from '@/lib/types';
 import type { FixtureMatch } from '@/app/api/fixtures/route';
 
 // Normalise football-data.org team names to our DB names
@@ -26,7 +26,7 @@ function normaliseName(name: string): string {
   return TEAM_NAME_MAP[name] ?? name;
 }
 
-type TabId = 'today' | 'group' | 'knockout';
+type TabId = 'today' | 'group' | 'knockout' | 'standings';
 
 const KNOCKOUT_STAGES = ['LAST_32', 'LAST_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'THIRD_PLACE', 'PLAY_OFF_3RD_PLACE', 'FINAL'];
 
@@ -197,6 +197,100 @@ function StaticSchedule() {
   );
 }
 
+function GroupStandings({ teams, pointsData, picks, users }: {
+  teams: Team[]; pointsData: TeamPoints[]; picks: DraftPick[]; users: GameUser[];
+}) {
+  // Build owner map: team id → accent colour
+  const ownerColour = new Map<string, string>();
+  for (const pick of picks) {
+    const user = users.find(u => u.id === pick.user_id);
+    if (user) ownerColour.set(pick.team_id, user.accent_colour);
+  }
+
+  // Compute group record per team from GW1/GW2/GW3
+  function record(teamId: string) {
+    let p = 0, w = 0, d = 0, l = 0;
+    for (const round of ['GW1', 'GW2', 'GW3']) {
+      const row = pointsData.find(tp => tp.team_id === teamId && tp.round === round);
+      if (!row) continue;
+      p++;
+      if (row.points === 3) w++;
+      else if (row.points === 1) d++;
+      else l++;
+    }
+    return { p, w, d, l, pts: w * 3 + d };
+  }
+
+  // Group teams by fifa_group, normalise group name to just the letter
+  const grouped = new Map<string, Team[]>();
+  for (const t of teams) {
+    const g = (t.fifa_group ?? '?').replace(/^GROUP_/, '');
+    if (!grouped.has(g)) grouped.set(g, []);
+    grouped.get(g)!.push(t);
+  }
+  // Sort groups alphabetically
+  const sortedGroups = Array.from(grouped.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+
+  if (sortedGroups.length === 0) {
+    return (
+      <div className="card py-8 text-center">
+        <p className="text-white/40 text-sm">Group data not available yet.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {sortedGroups.map(([group, groupTeams]) => {
+        // Sort by pts desc, then W desc
+        const sorted = [...groupTeams].map(t => ({ t, rec: record(t.id) }))
+          .sort((a, b) => b.rec.pts - a.rec.pts || b.rec.w - a.rec.w);
+        return (
+          <div key={group} className="card p-0 overflow-hidden">
+            <div className="px-3 py-2 border-b border-white/8">
+              <span className="font-display font-bold text-sm text-gold tracking-wider uppercase">Group {group}</span>
+            </div>
+            {/* Header row */}
+            <div className="grid px-3 py-1.5 text-white/30 text-[10px] uppercase tracking-wider font-bold"
+              style={{ gridTemplateColumns: '1fr 28px 28px 28px 28px 32px' }}>
+              <span>Team</span>
+              <span className="text-center">P</span>
+              <span className="text-center">W</span>
+              <span className="text-center">D</span>
+              <span className="text-center">L</span>
+              <span className="text-right">PTS</span>
+            </div>
+            {sorted.map(({ t, rec }) => {
+              const colour = ownerColour.get(t.id);
+              return (
+                <div
+                  key={t.id}
+                  className="grid items-center px-3 py-2 border-t border-white/5"
+                  style={{
+                    gridTemplateColumns: '1fr 28px 28px 28px 28px 32px',
+                    background: colour ? `${colour}10` : 'transparent',
+                  }}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-base leading-none">{t.flag_emoji}</span>
+                    <span className={`text-xs font-semibold truncate ${colour ? 'text-white' : 'text-white/70'}`}>{t.name}</span>
+                    {colour && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: colour }} />}
+                  </div>
+                  <span className="text-center text-xs text-white/50 tabular-nums">{rec.p}</span>
+                  <span className="text-center text-xs text-white/50 tabular-nums">{rec.w}</span>
+                  <span className="text-center text-xs text-white/50 tabular-nums">{rec.d}</span>
+                  <span className="text-center text-xs text-white/50 tabular-nums">{rec.l}</span>
+                  <span className={`text-right text-sm font-bold tabular-nums ${rec.pts > 0 ? 'text-gold' : 'text-white/30'}`}>{rec.pts}</span>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function FixturesPage() {
   const [matches, setMatches] = useState<FixtureMatch[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -206,6 +300,7 @@ export default function FixturesPage() {
   const [users, setUsers] = useState<GameUser[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [session, setSession] = useState<ReturnType<typeof getSession>>(null);
+  const [pointsData, setPointsData] = useState<TeamPoints[]>([]);
 
   useEffect(() => {
     setSession(getSession());
@@ -215,11 +310,12 @@ export default function FixturesPage() {
     async function load() {
       setLoading(true);
       try {
-        const [fixturesRes, picksRes, usersRes, teamsRes] = await Promise.all([
+        const [fixturesRes, picksRes, usersRes, teamsRes, pointsRes] = await Promise.all([
           fetch('/api/fixtures'),
           supabase.from('draft_picks').select('*'),
           supabase.from('users').select('*'),
           supabase.from('teams').select('*'),
+          supabase.from('team_points').select('*'),
         ]);
 
         const fixturesData = await fixturesRes.json();
@@ -234,6 +330,7 @@ export default function FixturesPage() {
         setPicks(picksRes.data ?? []);
         setUsers(usersRes.data ?? []);
         setTeams(teamsRes.data ?? []);
+        setPointsData(pointsRes.data ?? []);
       } catch {
         setError('FETCH_ERROR');
       } finally {
@@ -292,6 +389,7 @@ export default function FixturesPage() {
     { id: 'today', label: 'Today' },
     { id: 'group', label: 'Group Stage' },
     { id: 'knockout', label: 'Knockout' },
+    { id: 'standings', label: 'Standings' },
   ];
 
   const showStaticSchedule = error === 'NO_KEY' || error === 'NOT_AVAILABLE';
@@ -430,6 +528,11 @@ export default function FixturesPage() {
                 ))
               )}
             </div>
+          )}
+
+          {/* STANDINGS TAB */}
+          {tab === 'standings' && (
+            <GroupStandings teams={teams} pointsData={pointsData} picks={picks} users={users} />
           )}
 
           {/* KNOCKOUT TAB */}
