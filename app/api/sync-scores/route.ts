@@ -132,6 +132,30 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Fire daily wrap if it hasn't been generated in 20+ hours (fire-and-forget)
+  try {
+    const { data: lastWrap } = await supabase
+      .from('audit_log')
+      .select('created_at')
+      .eq('action', 'DAILY_WRAP')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    const hoursSince = lastWrap?.created_at
+      ? (Date.now() - new Date(lastWrap.created_at).getTime()) / 3_600_000
+      : Infinity;
+    if (hoursSince >= 20) {
+      const origin = req.nextUrl.origin;
+      const sec = process.env.CRON_SECRET;
+      fetch(
+        `${origin}/api/bulletin/generate${sec ? `?secret=${encodeURIComponent(sec)}` : ''}`,
+        { cache: 'no-store' },
+      ).catch(() => {});
+    }
+  } catch {
+    // non-fatal — daily wrap generation is best-effort
+  }
+
   const deduped = unknownTeams.filter((n, i) => unknownTeams.indexOf(n) === i);
   return NextResponse.json({
     ok: true, matchesProcessed: finished.length, rowsUpserted: rows.length, syncedAt: now,
