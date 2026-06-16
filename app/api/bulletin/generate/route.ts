@@ -44,6 +44,19 @@ export async function GET(req: NextRequest) {
     // ignore — proceed with whatever is in the DB
   }
 
+  // Guard: only one wrap per calendar day (Pacific time)
+  const todayPT = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }); // YYYY-MM-DD
+  const { data: todayWrap } = await db
+    .from('audit_log')
+    .select('id, created_at')
+    .eq('action', DAILY_WRAP_ACTION)
+    .gte('created_at', new Date(`${todayPT}T00:00:00-07:00`).toISOString())
+    .limit(1)
+    .single();
+  if (todayWrap) {
+    return NextResponse.json({ ok: false, skipped: true, reason: 'Already generated today (PT)' });
+  }
+
   const [usersRes, picksRes, teamsRes, pointsRes, lastWrapRes] = await Promise.all([
     db.from('users').select('*').order('display_name'),
     db.from('draft_picks').select('*'),
