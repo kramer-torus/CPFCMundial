@@ -9,8 +9,12 @@ export interface PlayerStanding {
   rank: number;
   teams_alive: number;
   best_stage: string;
-  // Per-team breakdown for richer banter
-  teams: { name: string; flag: string; tier: number; points: number; eliminated: boolean }[];
+  teams: {
+    name: string; flag: string; tier: number; points: number;
+    eliminated: boolean;
+    eliminatedToday?: boolean;
+    todayPoints?: number;
+  }[];
 }
 
 export interface StandingsSnapshotEntry {
@@ -20,16 +24,29 @@ export interface StandingsSnapshotEntry {
   rank: number;
 }
 
+export interface OddsRecord {
+  user_id: string;
+  display_name: string;
+  odds: string;
+}
+
+export interface OddsShift {
+  displayName: string;
+  direction: 'shorter' | 'longer';
+  delta: number; // absolute change in odds value
+}
+
 export interface BulletinData {
   standings: PlayerStanding[];
-  // Movement since the previous bulletin: positive = points gained in the window
   movers: { display_name: string; gained: number; rank: number; prev_rank: number | null }[];
-  // Which rounds have any recorded results, in tournament order
   roundsPlayed: string[];
-  // The most advanced round with any result — a proxy for "where the tournament is"
   latestStage: string | null;
   totalPointsScored: number;
   hasResults: boolean;
+  // Odds integration
+  currentOdds: OddsRecord[] | null;
+  previousOdds: OddsRecord[] | null;
+  oddsShifts: OddsShift[];
 }
 
 export function computeStandings(
@@ -93,6 +110,12 @@ export function buildBulletinData(
   standings: PlayerStanding[],
   points: TeamPoints[],
   previousSnapshot: StandingsSnapshotEntry[],
+  currentOdds: OddsRecord[] | null = null,
+  previousOdds: OddsRecord[] | null = null,
+  // team_id → points earned since the last wrap (for todayPoints annotation)
+  todayPointsByTeam: Map<string, number> = new Map(),
+  // team_ids eliminated since the last wrap
+  newlyEliminatedIds: Set<string> = new Set(),
 ): BulletinData {
   const prevByUser = new Map(previousSnapshot.map(e => [e.user_id, e]));
 
@@ -108,6 +131,34 @@ export function buildBulletinData(
     })
     .sort((a, b) => b.gained - a.gained);
 
+  // Annotate each player's teams with todayPoints / eliminatedToday
+  const annotatedStandings = standings.map(s => ({
+    ...s,
+    teams: s.teams.map(t => {
+      // find team_id from the original picks — we match by name since standings strips it
+      const todayPts = todayPointsByTeam.get(t.name) ?? 0;
+      const elimToday = newlyEliminatedIds.has(t.name);
+      return { ...t, todayPoints: todayPts, eliminatedToday: elimToday };
+    }),
+  }));
+
+  // Compute odds shifts
+  const oddsShifts: OddsShift[] = [];
+  if (currentOdds && previousOdds) {
+    for (const curr of currentOdds) {
+      const prev = previousOdds.find(p => p.user_id === curr.user_id);
+      if (!prev || prev.odds === '—' || curr.odds === '—') continue;
+      const delta = parseFloat(prev.odds) - parseFloat(curr.odds); // positive = shorter (better)
+      if (Math.abs(delta) < 0.1) continue;
+      oddsShifts.push({
+        displayName: curr.display_name,
+        direction: delta > 0 ? 'shorter' : 'longer',
+        delta: Math.abs(delta),
+      });
+    }
+    oddsShifts.sort((a, b) => b.delta - a.delta);
+  }
+
   const roundsPresent = new Set(points.map(p => p.round));
   const roundsPlayed = STAGE_ORDER.filter(r => roundsPresent.has(r)).map(r => ROUND_LABELS[r]);
   let latestStage: string | null = null;
@@ -118,12 +169,15 @@ export function buildBulletinData(
   const totalPointsScored = points.reduce((s, p) => s + p.points, 0);
 
   return {
-    standings,
+    standings: annotatedStandings,
     movers,
     roundsPlayed,
     latestStage,
     totalPointsScored,
     hasResults: points.length > 0 && totalPointsScored >= 0 && roundsPlayed.length > 0,
+    currentOdds,
+    previousOdds,
+    oddsShifts,
   };
 }
 

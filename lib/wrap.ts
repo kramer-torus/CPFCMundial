@@ -1,119 +1,153 @@
-// Daily Wrap generator — produces a lively, data-driven banter digest with no
-// external LLM. Stored in the audit_log table (action = DAILY_WRAP) so no extra
-// table/migration is needed.
-import { BulletinData, StandingsSnapshotEntry } from './standings';
+// Daily Wrap generator — data-driven digest focused on odds shifts and
+// position changes from the day's results. No external LLM.
+import { BulletinData, OddsRecord } from './standings';
 
 export const DAILY_WRAP_ACTION = 'DAILY_WRAP';
 
 export interface WrapDetail {
   title: string;
   body: string;
-  snapshot: StandingsSnapshotEntry[];
+  snapshot: { user_id: string; display_name: string; points: number; rank: number }[];
+  odds: OddsRecord[];
 }
 
 const MEDALS = ['🥇', '🥈', '🥉'];
+const divider = '━━━━━━━━━━━━━━';
 
-function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
+function oddsNum(s: string): number | null {
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
 }
 
-const KICKOFF_HOOKS = [
-  'Squads are locked, the balls are out, and there is officially nowhere left to hide. 🌍',
-  'No points on the board yet — but the bragging has already started. Let battle commence. ⚔️',
-  'The wait is over. 48 nations, 6 managers, one trophy. Boots on. 🥾',
-];
-
-const LEVEL_HOOKS = [
-  'Still all square at the top — nobody has thrown a punch yet. 😴',
-  'Tight at the summit. One result could blow this wide open. 👀',
-];
-
-const LEADER_LINES = [
-  (n: string) => `${n} sets the early pace and will absolutely not shut up about it. 🗣️`,
-  (n: string) => `${n} leads the pack — get the name on the trophy, eh? 🏆`,
-  (n: string) => `${n} out in front. Front-runners always crack though, right? 😏`,
-];
-
-const BOTTOM_LINES = [
-  (n: string) => `${n} props up the table. Someone has to. 🪜`,
-  (n: string) => `Spare a thought for ${n}, currently auditioning for the wooden spoon. 🥄`,
-  (n: string) => `${n} bottom of the pile — early days, but, well… 😬`,
-];
-
-const NO_MOVE_LINES = [
-  'Quiet day — nobody troubled the scorers. Awkward silence in the group chat. 🦗',
-  'No movement since the last wrap. The leaderboard is gathering dust. 🕸️',
-];
+function arrowLabel(prev: string, curr: string): string {
+  const p = oddsNum(prev); const c = oddsNum(curr);
+  if (p === null || c === null || Math.abs(p - c) < 0.05) return '';
+  // shorter odds = better (more likely to win)
+  return c < p ? ` ▼ _(was $${prev})_` : ` ▲ _(was $${prev})_`;
+}
 
 export function generateWrapBody(data: BulletinData, wrapNumber: number): string {
   const lines: string[] = [];
-  lines.push(`🏆 *CPFC MUNDIAL — DAILY WRAP #${wrapNumber}*`);
+  const stage = data.latestStage ?? 'Group Stage';
+  lines.push(`🏆 *CPFC MUNDIAL — DAILY WRAP #${wrapNumber} · ${stage}*`);
+  lines.push('');
 
-  const divider = '━━━━━━━━━━━━━━';
+  // ── Opening hook ── driven by actual data, not random pick ──────────
+  const top = data.standings[0];
+  const btm = data.standings[data.standings.length - 1];
+  const topGainer = [...data.movers].sort((a, b) => b.gained - a.gained)[0];
+  const topOddsShift = data.oddsShifts?.[0];
 
-  // Hook
   if (!data.hasResults) {
-    lines.push(pick(KICKOFF_HOOKS));
+    lines.push('Squads are locked. The balls are out. 48 nations, one trophy. ⚽');
+  } else if (topGainer?.gained >= 9) {
+    const squad = data.standings.find(s => s.display_name === topGainer.display_name);
+    const starTeam = squad?.teams[0];
+    lines.push(
+      `*${topGainer.display_name}* had the day of the tournament so far — ` +
+      `+${topGainer.gained} pts${starTeam ? ` with ${starTeam.flag} ${starTeam.name} leading the charge` : ''}. 🔥`
+    );
+  } else if (topOddsShift && Math.abs(topOddsShift.delta) >= 0.5) {
+    if (topOddsShift.direction === 'shorter') {
+      lines.push(`The market is moving. *${topOddsShift.displayName}* is closing in — odds shortening after today's results. 📉`);
+    } else {
+      lines.push(`*${topOddsShift.displayName}*'s odds drifted after today. The group chat will be talking. 📈`);
+    }
+  } else if (data.movers.every(m => m.gained === 0)) {
+    lines.push(`Rest day. No points on the board. Leaderboard unchanged, banter levels critical. 🦗`);
   } else {
-    const top = data.standings[0];
-    const allLevel = data.standings.every(s => s.points === top.points);
-    lines.push(allLevel ? pick(LEVEL_HOOKS) : pick(LEADER_LINES)(top.display_name));
+    const gap = top.points - btm.points;
+    lines.push(
+      gap === 0
+        ? `All square at the top — ${data.standings.length}-way tie. This is anyones tournament. ⚡`
+        : `Results in. *${top.display_name}* still leads, ${gap} pts clear. More below. 🧮`
+    );
   }
 
+  // ── Standings ────────────────────────────────────────────────────────
   lines.push('');
   lines.push(divider);
   lines.push('*📊 STANDINGS*');
   data.standings.forEach((s, i) => {
     const badge = MEDALS[i] ?? `${i + 1}.`;
-    const alive = data.hasResults ? `  ·  ${s.teams_alive} alive` : '';
-    lines.push(`${badge} *${s.display_name}* — ${s.points} pt${s.points === 1 ? '' : 's'}${alive}`);
+    const mover = data.movers.find(m => m.display_name === s.display_name);
+    const gained = mover?.gained ?? 0;
+    const rankChange =
+      mover?.prev_rank != null && mover.prev_rank !== s.rank
+        ? mover.prev_rank > s.rank ? ' ⬆️' : ' ⬇️'
+        : '';
+    const gainStr = gained > 0 ? `  *+${gained}*` : '';
+    lines.push(`${badge}${rankChange} *${s.display_name}* — ${s.points} pts · ${s.teams_alive} alive${gainStr}`);
   });
 
-  // Movers
-  if (data.hasResults) {
-    const realMovers = data.movers.filter(m => m.gained > 0);
+  // ── Live odds with movement ──────────────────────────────────────────
+  if (data.currentOdds && data.currentOdds.length > 0) {
     lines.push('');
     lines.push(divider);
-    lines.push('*📈 ON THE MOVE*');
-    if (realMovers.length === 0) {
-      lines.push(pick(NO_MOVE_LINES));
-    } else {
-      realMovers.slice(0, 3).forEach(m => {
-        const climb = m.prev_rank && m.prev_rank > m.rank ? ` ⬆️ up to ${m.rank}` : '';
-        lines.push(`🔥 *${m.display_name}* +${m.gained} pt${m.gained === 1 ? '' : 's'}${climb}`);
-      });
-    }
-
-    // Banter — leader hype + bottom jab when there's separation
-    const top = data.standings[0];
-    const bottom = data.standings[data.standings.length - 1];
-    if (top.points !== bottom.points) {
+    lines.push('*🎲 LIVE ODDS*');
+    data.currentOdds.forEach((o, i) => {
+      const prev = data.previousOdds?.find(p => p.user_id === o.user_id);
+      const arrow = prev ? arrowLabel(prev.odds, o.odds) : '';
+      lines.push(`${i + 1}. *${o.display_name}* $${o.odds}${arrow}`);
+    });
+    const shortened = data.oddsShifts?.filter(s => s.direction === 'shorter') ?? [];
+    const drifted   = data.oddsShifts?.filter(s => s.direction === 'longer') ?? [];
+    if (shortened.length > 0 || drifted.length > 0) {
       lines.push('');
-      lines.push(divider);
-      lines.push(pick(LEADER_LINES)(top.display_name));
-      lines.push(pick(BOTTOM_LINES)(bottom.display_name));
+      if (shortened.length > 0)
+        lines.push(`_▼ shortening: ${shortened.map(s => s.displayName).join(', ')}_`);
+      if (drifted.length > 0)
+        lines.push(`_▲ drifting: ${drifted.map(s => s.displayName).join(', ')}_`);
     }
-
-    // Eliminations callout
-    const knockedOut = data.standings.flatMap(s =>
-      s.teams.filter(t => t.eliminated).map(t => `${t.flag} ${t.name} (${s.display_name})`),
-    );
-    if (knockedOut.length > 0) {
-      lines.push('');
-      lines.push(divider);
-      lines.push('*💀 GONE*');
-      lines.push(knockedOut.slice(0, 6).join(' · '));
-    }
-  } else {
-    // Pre-tournament flavour
-    lines.push('');
-    lines.push(divider);
-    lines.push('Standings are level — as they should be. Points start landing once the football does. ⚽');
   }
 
+  // ── Today's points earners ───────────────────────────────────────────
+  const earners = data.movers.filter(m => m.gained > 0);
+  if (earners.length > 0) {
+    lines.push('');
+    lines.push(divider);
+    lines.push('*📈 TODAY\'S EARNERS*');
+    for (const m of earners) {
+      const squad = data.standings.find(s => s.display_name === m.display_name);
+      // Find which teams scored for this player today
+      const contributors = squad?.teams
+        .filter(t => t.todayPoints && t.todayPoints > 0)
+        .map(t => `${t.flag} ${t.name}`) ?? [];
+      const teamStr = contributors.length > 0 ? ` — ${contributors.join(', ')}` : '';
+      lines.push(`🔥 *${m.display_name}* +${m.gained} pt${m.gained === 1 ? '' : 's'}${teamStr}`);
+    }
+  }
+
+  // ── Eliminations ─────────────────────────────────────────────────────
+  const knockedOut = data.standings.flatMap(s =>
+    s.teams.filter(t => t.eliminated && t.eliminatedToday).map(t => `${t.flag} ${t.name} _(${s.display_name})_`)
+  );
+  if (knockedOut.length > 0) {
+    lines.push('');
+    lines.push(divider);
+    lines.push('*💀 ELIMINATED TODAY*');
+    lines.push(knockedOut.join(' · '));
+  }
+
+  // ── Banter footer — generated from data, not random ──────────────────
   lines.push('');
   lines.push(divider);
-  lines.push(data.latestStage ? `Stage: *${data.latestStage}*` : 'Group stage incoming.');
+  const gap = top.points - btm.points;
+  const topOdds = data.currentOdds?.[0];
+  const btmOdds = data.currentOdds?.[data.currentOdds.length - 1];
+
+  if (gap >= 12) {
+    lines.push(`${top.display_name} is ${gap} pts clear. Is this already over? 😅`);
+  } else if (gap <= 3 && data.hasResults) {
+    lines.push(`${gap === 0 ? 'Deadlocked.' : `${gap} pts`} between first and last. Genuinely anyone's. ⚡`);
+  } else if (topOdds && btmOdds && topOdds.odds !== '—' && btmOdds.odds !== '—') {
+    lines.push(
+      `${top.display_name} favourite at $${topOdds.odds}. ` +
+      `${btm.display_name} the longest shot at $${btmOdds.odds}. One good day changes everything. 🌀`
+    );
+  } else {
+    lines.push(`${top.display_name} leads — but the knockouts rewrite everything. 🌀`);
+  }
   lines.push('Glad All Over the World 🦅');
 
   return lines.join('\n');

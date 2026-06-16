@@ -6,8 +6,10 @@ import {
   buildBulletinData,
   snapshotFromStandings,
   StandingsSnapshotEntry,
+  OddsRecord,
 } from '@/lib/standings';
 import { generateWrapBody, DAILY_WRAP_ACTION, WrapDetail } from '@/lib/wrap';
+import { ODDS_SNAPSHOT_ACTION, OddsSnapshot } from '@/lib/odds';
 import { sendRawWhatsApp } from '@/lib/whatsapp';
 
 export const dynamic = 'force-dynamic';
@@ -57,12 +59,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, skipped: true, reason: 'Already generated today (PT)' });
   }
 
-  const [usersRes, picksRes, teamsRes, pointsRes, lastWrapRes] = await Promise.all([
+  const [usersRes, picksRes, teamsRes, pointsRes, lastWrapRes, oddsRes] = await Promise.all([
     db.from('users').select('*').order('display_name'),
     db.from('draft_picks').select('*'),
     db.from('teams').select('*'),
     db.from('team_points').select('*'),
     db.from('audit_log').select('detail, created_at').eq('action', DAILY_WRAP_ACTION).order('created_at', { ascending: false }).limit(1),
+    db.from('audit_log').select('detail').eq('action', ODDS_SNAPSHOT_ACTION).order('created_at', { ascending: false }).limit(1),
   ]);
 
   const users = (usersRes.data || []) as GameUser[];
@@ -74,17 +77,31 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'No draft data — nothing to report on yet.' }, { status: 400 });
   }
 
-  // Previous snapshot (for movers) lives in the last wrap's JSON detail.
+  // Previous wrap: extract standings snapshot + odds for comparison
   let prevSnapshot: StandingsSnapshotEntry[] = [];
+  let previousOdds: OddsRecord[] | null = null;
   try {
     const prevDetail = lastWrapRes.data?.[0]?.detail;
     if (prevDetail) {
       const parsed = JSON.parse(prevDetail) as WrapDetail;
       prevSnapshot = parsed.snapshot ?? [];
+      previousOdds = parsed.odds ?? null;
     }
-  } catch {
-    // older/free-form audit rows — ignore
-  }
+  } catch { /* ignore older rows */ }
+
+  // Current odds from latest ODDS_SNAPSHOT
+  let currentOdds: OddsRecord[] | null = null;
+  try {
+    const rawOdds = oddsRes.data?.[0]?.detail;
+    if (rawOdds) {
+      const snap = JSON.parse(rawOdds) as OddsSnapshot;
+      currentOdds = snap.rows.map(r => ({
+        user_id: r.user_id,
+        display_name: r.display_name,
+        odds: r.odds,
+      }));
+    }
+  } catch { /* no odds snapshot yet */ }
 
   const { count } = await db
     .from('audit_log')
@@ -93,13 +110,34 @@ export async function GET(req: NextRequest) {
   const wrapNumber = (count ?? 0) + 1;
 
   const standings = computeStandings(users, picks, teams, points);
-  const data = buildBulletinData(standings, points, prevSnapshot);
+
+  // Build today's per-team point gains (name → pts) for "TODAY'S EARNERS"
+  const todayPointsByTeam = new Map<string, number>();
+  if (prevSnapshot.length > 0) {
+    const teamById = new Map(teams.map(t => [t.id, t]));
+    // Points from picks that belong to players who gained points today
+    const prevPtsByUser = new Map(prevSnapshot.map(e => [e.user_id, e.points]));
+    for (const pick of picks) {
+      const user = users.find(u => u.id === pick.user_id);
+      if (!user) continue;
+      const prevTotal = prevPtsByUser.get(pick.user_id) ?? 0;
+      const currTotal = standings.find(s => s.user_id === pick.user_id)?.points ?? 0;
+      if (currTotal <= prevTotal) continue; // player didn't gain today
+      const team = teamById.get(pick.team_id);
+      if (!team) continue;
+      // Sum all point rows for this team
+      const teamTotal = points.filter(p => p.team_id === pick.team_id).reduce((s, p) => s + p.points, 0);
+      todayPointsByTeam.set(team.name, teamTotal);
+    }
+  }
+
+  const data = buildBulletinData(standings, points, prevSnapshot, currentOdds, previousOdds, todayPointsByTeam);
 
   const body = generateWrapBody(data, wrapNumber);
   const title = data.latestStage ? `Daily Wrap #${wrapNumber} · ${data.latestStage}` : `Daily Wrap #${wrapNumber}`;
   const snapshot = snapshotFromStandings(standings);
 
-  const detail: WrapDetail = { title, body, snapshot };
+  const detail: WrapDetail = { title, body, snapshot, odds: currentOdds ?? [] };
   const adminId = users.find(u => u.is_admin)?.id ?? null;
 
   const { error: insertErr } = await db
