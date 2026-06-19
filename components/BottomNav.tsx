@@ -1,11 +1,12 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Trophy, Newspaper, Calendar, Users, Flame } from 'lucide-react';
+import { Trophy, Newspaper, Calendar, Users, Flame, LayoutGrid } from 'lucide-react';
 
 const TABS = [
   { href: '/', label: 'Home', Icon: Trophy },
   { href: '/fixtures', label: 'Fixtures', Icon: Calendar },
+  { href: '/draft-results', label: 'Draft', Icon: LayoutGrid },
   { href: '/squads', label: 'Squads', Icon: Users },
   { href: '/bulletin', label: 'Daily Wrap', Icon: Newspaper },
   { href: '/quiz', label: 'Gauntlet', Icon: Flame },
