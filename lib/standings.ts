@@ -1,6 +1,7 @@
 // Server-safe standings + bulletin-data computation.
 // No 'use client' — imported by the bulletin generation API route.
-import { GameUser, DraftPick, Team, TeamPoints, Round, STAGE_ORDER, KNOCKOUT_ROUNDS, ROUND_LABELS } from './types';
+import { GameUser, DraftPick, Team, TeamPoints, Round, STAGE_ORDER, ROUND_LABELS } from './types';
+import { computeEliminatedTeamIds } from './elimination';
 
 export interface PlayerStanding {
   user_id: string;
@@ -54,13 +55,12 @@ export function computeStandings(
   picks: DraftPick[],
   teams: Team[],
   points: TeamPoints[],
+  // Lowercased DB names of teams that reached the knockout stage (R32 draw),
+  // or null when the draw isn't known yet. Drives group-stage eliminations.
+  qualifiers: Set<string> | null = null,
 ): PlayerStanding[] {
   const teamById = new Map(teams.map(t => [t.id, t]));
-  const eliminatedIds = new Set(
-    points
-      .filter(tp => KNOCKOUT_ROUNDS.includes(tp.round) && tp.points === 0)
-      .map(tp => tp.team_id),
-  );
+  const eliminatedIds = computeEliminatedTeamIds(teams, points, qualifiers);
 
   return users
     .map(u => {

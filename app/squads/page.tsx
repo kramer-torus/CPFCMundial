@@ -4,7 +4,8 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { GameUser, DraftPick, TeamPoints, Team, KNOCKOUT_ROUNDS } from '@/lib/types';
+import { GameUser, DraftPick, TeamPoints, Team } from '@/lib/types';
+import { computeEliminatedTeamIds, knockoutQualifiers } from '@/lib/elimination';
 import type { FixtureMatch } from '@/app/api/fixtures/route';
 
 const RANK_BADGES = ['🥇','🥈','🥉'];
@@ -42,12 +43,12 @@ interface PlayerSquad {
   picks: (DraftPick & { team: Team; points: number; eliminated: boolean })[]; rank: number;
 }
 
-function buildSquads(users: GameUser[], picks: DraftPick[], teams: Team[], pointsData: TeamPoints[]): PlayerSquad[] {
+function buildSquads(users: GameUser[], picks: DraftPick[], teams: Team[], pointsData: TeamPoints[], fixtures: FixtureMatch[]): PlayerSquad[] {
   const teamsById = new Map(teams.map(t => [t.id, t]));
+  const eliminatedIds = computeEliminatedTeamIds(teams, pointsData, knockoutQualifiers(fixtures, teams));
   const squads: Omit<PlayerSquad,'rank'>[] = users.map(user => {
     const userPicks = picks.filter(p => p.user_id === user.id);
     const teamIds = userPicks.map(p => p.team_id);
-    const eliminatedIds = new Set(pointsData.filter(tp => KNOCKOUT_ROUNDS.includes(tp.round) && tp.points === 0 && teamIds.includes(tp.team_id)).map(tp => tp.team_id));
     const totalPoints = pointsData.filter(tp => teamIds.includes(tp.team_id)).reduce((sum,tp) => sum+tp.points, 0);
     const teamsAlive = teamIds.filter(id => !eliminatedIds.has(id)).length;
     const enrichedPicks = userPicks.map(pick => {
@@ -82,9 +83,10 @@ export default function SquadsPage() {
       const fixturesJson = await fetch('/api/fixtures').then(r=>r.json()).catch(()=>({matches:[]}));
       const users: GameUser[] = usersRes.data??[]; const picks: DraftPick[] = picksRes.data??[];
       const teams: Team[] = teamsRes.data??[]; const pd: TeamPoints[] = pointsRes.data??[];
-      setHasPicks(picks.length>0); setSquads(buildSquads(users,picks,teams,pd));
+      const fx: FixtureMatch[] = fixturesJson.matches ?? [];
+      setHasPicks(picks.length>0); setSquads(buildSquads(users,picks,teams,pd,fx));
       setPointsData(pd); setAllTeams(teams);
-      setFixtures(fixturesJson.matches ?? []);
+      setFixtures(fx);
     } catch {} finally { setLoading(false); }
   }, []);
 

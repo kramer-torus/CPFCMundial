@@ -5,23 +5,25 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
-import { GameUser, DraftPick, TeamPoints, PlayerLeaderboard, STAGE_ORDER, KNOCKOUT_ROUNDS } from '@/lib/types';
+import { GameUser, DraftPick, TeamPoints, Team, PlayerLeaderboard, STAGE_ORDER } from '@/lib/types';
+import { computeEliminatedTeamIds, knockoutQualifiers } from '@/lib/elimination';
+import type { FixtureMatch } from '@/app/api/fixtures/route';
 import ShareButton from '@/components/ShareButton';
 import FixtureTicker from '@/components/FixtureTicker';
 
 const RANK_BADGES = ['🥇', '🥈', '🥉'];
 
-function calcLeaderboard(users: GameUser[], picks: DraftPick[], points: TeamPoints[]): PlayerLeaderboard[] {
+function calcLeaderboard(
+  users: GameUser[],
+  picks: DraftPick[],
+  points: TeamPoints[],
+  eliminatedIds: Set<string>,
+): PlayerLeaderboard[] {
   return users.map(u => {
     const myTeamIds = picks.filter(p => p.user_id === u.id).map(p => p.team_id);
     const totalPoints = points
       .filter(tp => myTeamIds.includes(tp.team_id))
       .reduce((sum, tp) => sum + tp.points, 0);
-    const eliminatedIds = new Set(
-      points
-        .filter(tp => KNOCKOUT_ROUNDS.includes(tp.round) && tp.points === 0 && myTeamIds.includes(tp.team_id))
-        .map(tp => tp.team_id)
-    );
     const teamsAlive = myTeamIds.filter(id => !eliminatedIds.has(id)).length;
     let bestStage = '—';
     for (const round of [...STAGE_ORDER].reverse()) {
@@ -47,16 +49,21 @@ export default function HomePage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [usersRes, picksRes, pointsRes] = await Promise.all([
+      const [usersRes, picksRes, pointsRes, teamsRes] = await Promise.all([
         supabase.from('users').select('*').order('display_name'),
         supabase.from('draft_picks').select('*'),
         supabase.from('team_points').select('*'),
+        supabase.from('teams').select('*'),
       ]);
+      const fixtures: FixtureMatch[] = await fetch('/api/fixtures')
+        .then(r => r.json()).then(j => j.matches ?? []).catch(() => []);
       const users: GameUser[] = usersRes.data || [];
       const picks: DraftPick[] = picksRes.data || [];
       const points: TeamPoints[] = pointsRes.data || [];
+      const teams: Team[] = teamsRes.data || [];
+      const eliminatedIds = computeEliminatedTeamIds(teams, points, knockoutQualifiers(fixtures, teams));
       setHasPicks(picks.length > 0);
-      setBoard(calcLeaderboard(users, picks, points));
+      setBoard(calcLeaderboard(users, picks, points, eliminatedIds));
       setUpdatedAt(new Date());
     } catch {
       // Network failure — show empty state

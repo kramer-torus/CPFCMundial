@@ -555,7 +555,7 @@ export default function FixturesPage() {
                 {knockoutMatches.length === 0 ? (
                   <div className="space-y-4">
                     <div className="card py-4 text-center">
-                      <p className="text-white/40 text-xs">Bracket unlocks after the group stage.</p>
+                      <p className="text-white/40 text-xs">Knockout fixtures appear here once the Round of 32 draw is confirmed.</p>
                     </div>
                     <KnockoutBracket matches={[]} ownerMap={bracketOwnerMap} teams={teams} />
                   </div>

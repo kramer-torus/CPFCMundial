@@ -3,7 +3,9 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { GameUser, DraftPick, Team, TeamPoints, KNOCKOUT_ROUNDS } from '@/lib/types';
+import { GameUser, DraftPick, Team, TeamPoints } from '@/lib/types';
+import { computeEliminatedTeamIds, knockoutQualifiers } from '@/lib/elimination';
+import type { FixtureMatch } from '@/app/api/fixtures/route';
 
 // pick_number for a given (roundIdx 0-7, playerIdx 0-5) in snake order
 function pickNumForCell(roundIdx: number, playerIdx: number): number {
@@ -33,13 +35,12 @@ function buildGrid(
   picks: DraftPick[],
   teams: Team[],
   points: TeamPoints[],
+  fixtures: FixtureMatch[],
 ): PageData {
   const players = [...users].sort((a, b) => (a.draft_position ?? 99) - (b.draft_position ?? 99));
   const teamById = new Map(teams.map(t => [t.id, t]));
   const pickByNum = new Map(picks.map(p => [p.pick_number, p]));
-  const eliminatedIds = new Set(
-    points.filter(tp => KNOCKOUT_ROUNDS.includes(tp.round) && tp.points === 0).map(tp => tp.team_id),
-  );
+  const eliminatedIds = computeEliminatedTeamIds(teams, points, knockoutQualifiers(fixtures, teams));
   const ptsByTeam = new Map<string, number>();
   for (const tp of points) {
     ptsByTeam.set(tp.team_id, (ptsByTeam.get(tp.team_id) ?? 0) + tp.points);
@@ -77,11 +78,13 @@ export default function DraftResultsPage() {
       supabase.from('teams').select('*'),
       supabase.from('team_points').select('*'),
     ]);
+    const fixtures: FixtureMatch[] = await fetch('/api/fixtures')
+      .then(r => r.json()).then(j => j.matches ?? []).catch(() => []);
     const users = (usersRes.data ?? []) as GameUser[];
     const picks = (picksRes.data ?? []) as DraftPick[];
     const teams = (teamsRes.data ?? []) as Team[];
     const points = (pointsRes.data ?? []) as TeamPoints[];
-    if (picks.length > 0) setData(buildGrid(users, picks, teams, points));
+    if (picks.length > 0) setData(buildGrid(users, picks, teams, points, fixtures));
     setLoading(false);
   }, []);
 

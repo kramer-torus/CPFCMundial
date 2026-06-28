@@ -10,6 +10,8 @@ import {
 } from '@/lib/standings';
 import { generateWrapBody, DAILY_WRAP_ACTION, WrapDetail } from '@/lib/wrap';
 import { ODDS_SNAPSHOT_ACTION, OddsSnapshot } from '@/lib/odds';
+import { knockoutQualifiers } from '@/lib/elimination';
+import type { FixtureMatch } from '@/app/api/fixtures/route';
 import { sendRawWhatsApp } from '@/lib/whatsapp';
 
 export const dynamic = 'force-dynamic';
@@ -109,7 +111,18 @@ export async function GET(req: NextRequest) {
     .eq('action', DAILY_WRAP_ACTION);
   const wrapNumber = (count ?? 0) + 1;
 
-  const standings = computeStandings(users, picks, teams, points);
+  // Knockout draw (R32 field) drives group-stage eliminations / teams-alive.
+  let qualifiers: Set<string> | null = null;
+  try {
+    const fxRes = await fetch(`${req.nextUrl.origin}/api/fixtures`, { cache: 'no-store' });
+    const fxJson = await fxRes.json();
+    const fixtures: FixtureMatch[] = fxJson.matches ?? [];
+    qualifiers = knockoutQualifiers(fixtures, teams);
+  } catch {
+    // no fixtures feed → fall back to knockout-result eliminations only
+  }
+
+  const standings = computeStandings(users, picks, teams, points, qualifiers);
 
   // Build today's per-team point gains (name → pts) for "TODAY'S EARNERS"
   const todayPointsByTeam = new Map<string, number>();
