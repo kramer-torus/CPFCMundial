@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { generateOddsSnapshot, ODDS_SNAPSHOT_ACTION } from '@/lib/odds';
+import { knockoutQualifiers } from '@/lib/elimination';
 import type { GameUser, DraftPick, Team, TeamPoints } from '@/lib/types';
 
 const FD_BASE = 'https://api.football-data.org/v4';
@@ -121,7 +122,13 @@ export async function GET(req: NextRequest) {
     const snapPicks = (picksRes.data ?? []) as DraftPick[];
     const snapPoints = (freshPointsRes.data ?? []) as TeamPoints[];
     if (snapUsers.length && snapPicks.length) {
-      const snapshot = generateOddsSnapshot(snapUsers, snapPicks, teams, snapPoints);
+      // Derive the R32 field from the live feed so eliminated teams stop
+      // contributing strength to their owner's odds.
+      const qualifiers = knockoutQualifiers(
+        matches.map(m => ({ stage: m.stage, homeTeam: m.homeTeam.name, awayTeam: m.awayTeam.name })),
+        teams,
+      );
+      const snapshot = generateOddsSnapshot(snapUsers, snapPicks, teams, snapPoints, qualifiers);
       const adminUser = snapUsers.find(u => u.is_admin) ?? snapUsers[0];
       await supabase.from('audit_log').insert({
         user_id: adminUser.id,

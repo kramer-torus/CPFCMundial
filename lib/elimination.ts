@@ -9,7 +9,10 @@
 // teams, so we gate it behind a quorum check to avoid wrongly eliminating
 // everyone while fixtures still read "TBD".
 import { Team, TeamPoints, KNOCKOUT_ROUNDS } from './types';
-import type { FixtureMatch } from '@/app/api/fixtures/route';
+
+// Minimal shape needed to read the knockout draw — satisfied by both the
+// public FixtureMatch type and the raw football-data match in sync-scores.
+interface KnockoutEntry { stage: string; homeTeam: string; awayTeam: string; }
 
 // football-data.org → our DB names
 const TEAM_NAME_MAP: Record<string, string> = {
@@ -48,7 +51,7 @@ const QUALIFIER_QUORUM = 24;
  * inflate the quorum or poison the set.
  */
 export function knockoutQualifiers(
-  matches: FixtureMatch[],
+  matches: KnockoutEntry[],
   teams: Team[],
 ): Set<string> | null {
   const dbNames = new Set(teams.map(t => t.name.toLowerCase()));

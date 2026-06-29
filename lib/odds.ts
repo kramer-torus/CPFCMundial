@@ -1,7 +1,8 @@
 // Odds model: FIFA-ranking exponential decay → tournament win probability.
 // exp(-0.1 * rank): rank1≈0.90, rank5≈0.61, rank10≈0.37, rank20≈0.14, rank50≈0.01
 // This differentiates squads by WHICH teams they have within each tier, not just tier counts.
-import { GameUser, DraftPick, Team, TeamPoints, KNOCKOUT_ROUNDS } from './types';
+import { GameUser, DraftPick, Team, TeamPoints } from './types';
+import { computeEliminatedTeamIds } from './elimination';
 
 export const ODDS_SNAPSHOT_ACTION = 'ODDS_SNAPSHOT';
 
@@ -84,11 +85,13 @@ export function generateOddsSnapshot(
   picks: DraftPick[],
   teams: Team[],
   points: TeamPoints[],
+  // Lowercased DB names of teams that reached the knockouts (R32 draw), or null
+  // when unknown. Drives group-stage eliminations so a knocked-out team's
+  // strength stops propping up its owner's odds.
+  qualifiers: Set<string> | null = null,
 ): OddsSnapshot {
   const teamById = new Map(teams.map(t => [t.id, t]));
-  const eliminatedIds = new Set(
-    points.filter(tp => KNOCKOUT_ROUNDS.includes(tp.round) && tp.points === 0).map(tp => tp.team_id),
-  );
+  const eliminatedIds = computeEliminatedTeamIds(teams, points, qualifiers);
 
   const computed = users.map(u => {
     const myPicks = picks.filter(p => p.user_id === u.id);

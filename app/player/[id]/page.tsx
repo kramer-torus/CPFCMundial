@@ -5,7 +5,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { GameUser, Team, DraftPick, TeamPoints, KNOCKOUT_ROUNDS } from '@/lib/types';
+import { GameUser, Team, DraftPick, TeamPoints } from '@/lib/types';
+import { computeEliminatedTeamIds, knockoutQualifiers } from '@/lib/elimination';
 import type { FixtureMatch } from '@/app/api/fixtures/route';
 
 const TEAM_NAME_MAP: Record<string, string> = {
@@ -48,23 +49,26 @@ export default function PlayerPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [userRes, picksRes, pointsRes, fixturesJson] = await Promise.all([
+        const [userRes, picksRes, pointsRes, teamsRes, fixturesJson] = await Promise.all([
           supabase.from('users').select('*').eq('id', id).single(),
           supabase.from('draft_picks').select('*, teams(*)').eq('user_id', id).order('pick_number'),
           supabase.from('team_points').select('*'),
+          supabase.from('teams').select('*'),
           fetch('/api/fixtures').then(r=>r.json()).catch(()=>({matches:[]})),
         ]);
         const u = userRes.data as GameUser;
         const picks: (DraftPick & { teams: Team })[] = picksRes.data || [];
         const ap: TeamPoints[] = pointsRes.data || [];
+        const allTeams: Team[] = teamsRes.data || [];
+        const fx: FixtureMatch[] = fixturesJson.matches ?? [];
+        const eliminatedIds = computeEliminatedTeamIds(allTeams, ap, knockoutQualifiers(fx, allTeams));
         setUser(u);
         setAllPoints(ap);
-        setFixtures(fixturesJson.matches ?? []);
+        setFixtures(fx);
         setTeams(picks.map(p => {
           const teamId = p.team_id;
           const pts = ap.filter(tp => tp.team_id === teamId).reduce((s, tp) => s + tp.points, 0);
-          const elim = ap.some(tp => tp.team_id === teamId && KNOCKOUT_ROUNDS.includes(tp.round) && tp.points === 0);
-          return { ...p.teams, points: pts, eliminated: elim };
+          return { ...p.teams, points: pts, eliminated: eliminatedIds.has(teamId) };
         }));
       } catch {
         // Network failure
