@@ -48,6 +48,19 @@ function normaliseName(name: string): string {
 }
 
 export async function GET(req: NextRequest) {
+  try {
+    return await sync(req);
+  } catch (err) {
+    // Never leak an unhandled exception as a bare 500 — surface it so the
+    // failure is diagnosable and the caller can decide whether to alert.
+    return NextResponse.json(
+      { ok: false, error: 'sync_exception', detail: err instanceof Error ? err.message : String(err) },
+      { status: 500 },
+    );
+  }
+}
+
+async function sync(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (secret) {
     const auth = req.headers.get('authorization') ?? req.nextUrl.searchParams.get('secret') ?? '';
@@ -58,20 +71,39 @@ export async function GET(req: NextRequest) {
   const apiKey = process.env.FOOTBALL_DATA_API_KEY;
   if (!apiKey) return NextResponse.json({ error: 'FOOTBALL_DATA_API_KEY not configured' }, { status: 503 });
 
-  const fdRes = await fetch(`${FD_BASE}/competitions/${WC_CODE}/matches`, {
-    headers: { 'X-Auth-Token': apiKey },
-    cache: 'no-store',
-  });
+  let fdRes: Response;
+  try {
+    fdRes = await fetch(`${FD_BASE}/competitions/${WC_CODE}/matches`, {
+      headers: { 'X-Auth-Token': apiKey },
+      cache: 'no-store',
+    });
+  } catch (err) {
+    // Network/DNS/timeout reaching the feed — transient, not our bug.
+    return NextResponse.json({ ok: false, error: 'upstream_unreachable', detail: String(err) }, { status: 502 });
+  }
   if (!fdRes.ok) {
     const text = await fdRes.text().catch(() => '');
-    return NextResponse.json({ error: `football-data.org ${fdRes.status}`, detail: text }, { status: 502 });
+    return NextResponse.json({ ok: false, error: `football-data.org ${fdRes.status}`, detail: text }, { status: 502 });
   }
 
-  const { matches } = await fdRes.json() as { matches: FDMatch[] };
+  // The feed occasionally answers 200 with a non-match payload (rate-limit
+  // notices, restricted-competition messages). Treat a missing/!array `matches`
+  // as a transient upstream condition rather than crashing on `.filter`.
+  const payload = await fdRes.json().catch(() => null) as { matches?: FDMatch[] } | null;
+  if (!payload || !Array.isArray(payload.matches)) {
+    return NextResponse.json(
+      { ok: false, error: 'upstream_no_matches', detail: JSON.stringify(payload)?.slice(0, 300) ?? 'null' },
+      { status: 502 },
+    );
+  }
+  const matches = payload.matches;
   const finished = matches.filter(m => m.status === 'FINISHED');
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseKey) {
+    return NextResponse.json({ ok: false, error: 'supabase_env_missing' }, { status: 503 });
+  }
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   const { data: teamsData } = await supabase.from('teams').select('id, name, tier, flag_emoji, fifa_ranking, confederation, is_debut');
@@ -90,10 +122,13 @@ export async function GET(req: NextRequest) {
   for (const match of finished) {
     const round = resolveRound(match.stage, match.matchday ?? null);
     if (!round) continue;
-    const homeId = findId(match.homeTeam.name);
-    const awayId = findId(match.awayTeam.name);
-    if (!homeId) unknownTeams.push(match.homeTeam.name);
-    if (!awayId) unknownTeams.push(match.awayTeam.name);
+    const homeName = match.homeTeam?.name;
+    const awayName = match.awayTeam?.name;
+    if (!homeName || !awayName) continue; // undetermined fixture — skip
+    const homeId = findId(homeName);
+    const awayId = findId(awayName);
+    if (!homeId) unknownTeams.push(homeName);
+    if (!awayId) unknownTeams.push(awayName);
     const isGroup = ['GW1', 'GW2', 'GW3'].includes(round);
     let homeWon: boolean, awayWon: boolean, drew = false;
     if (isGroup) {
@@ -125,7 +160,7 @@ export async function GET(req: NextRequest) {
       // Derive the R32 field from the live feed so eliminated teams stop
       // contributing strength to their owner's odds.
       const qualifiers = knockoutQualifiers(
-        matches.map(m => ({ stage: m.stage, homeTeam: m.homeTeam.name, awayTeam: m.awayTeam.name })),
+        matches.map(m => ({ stage: m.stage, homeTeam: m.homeTeam?.name ?? '', awayTeam: m.awayTeam?.name ?? '' })),
         teams,
       );
       const snapshot = generateOddsSnapshot(snapUsers, snapPicks, teams, snapPoints, qualifiers);
@@ -148,7 +183,8 @@ export async function GET(req: NextRequest) {
 
 interface FDMatch {
   status: string; stage: string; matchday?: number;
-  homeTeam: { name: string }; awayTeam: { name: string };
+  // Undetermined knockout fixtures come back with null team/name.
+  homeTeam: { name: string | null } | null; awayTeam: { name: string | null } | null;
   score: { winner: 'HOME_TEAM' | 'AWAY_TEAM' | 'DRAW' | null; fullTime: { home: number | null; away: number | null } };
 }
 interface UpsertRow { team_id: string; round: string; points: number; updated_at: string; }

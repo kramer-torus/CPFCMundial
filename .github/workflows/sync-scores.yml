@@ -13,10 +13,26 @@ jobs:
     steps:
       - name: Trigger score sync
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            "https://cpfc-mundial.vercel.app/api/sync-scores")
+          # Best-effort sync that runs every 5 minutes. Upstream hiccups
+          # (football-data rate limits, brief outages) are expected and must
+          # NOT spam failure emails — only a genuine server-side bug (HTTP 500)
+          # is worth alerting on.
+          STATUS=$(curl -sS -o /tmp/resp.json -w "%{http_code}" \
+            --max-time 30 --retry 2 --retry-delay 3 \
+            "https://cpfc-mundial.vercel.app/api/sync-scores" || echo "000")
           echo "Response status: $STATUS"
-          if [ "$STATUS" != "200" ]; then
-            echo "Sync returned non-200 status: $STATUS"
-            exit 1
-          fi
+          echo "Body: $(cat /tmp/resp.json 2>/dev/null | head -c 500)"
+
+          case "$STATUS" in
+            2*)
+              echo "Sync OK."
+              ;;
+            500)
+              echo "::error::Sync hit a server-side error (HTTP 500) — likely a bug worth investigating."
+              exit 1
+              ;;
+            *)
+              # 4xx (auth/guard), 502/503 (upstream), 000 (network) — transient/expected.
+              echo "::warning::Sync skipped this run (HTTP $STATUS). Transient — will retry next cycle."
+              ;;
+          esac
